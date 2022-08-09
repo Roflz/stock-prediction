@@ -1,3 +1,4 @@
+import pandas as pd
 import pandas_datareader as pdr
 import numpy as np
 import datetime as dt
@@ -138,9 +139,9 @@ def create_training_sets(training_set: np.array, pred_column: int, n_past: int, 
     X_train = []
     y_train = []
 
-    for i in range(n_past, len(training_set) - n_future + 1):
+    for i in range(n_past, len(training_set) + 1):
         X_train.append(training_set[i - n_past:i, 0:training_set.shape[1]])
-        y_train.append(training_set[i + n_future - 1:i + n_future, pred_column])
+        y_train.append(training_set[i - 1, pred_column])
 
     return np.array(X_train), np.array(y_train)
 
@@ -151,3 +152,13 @@ def datetime_to_timestamp(x):
         x : a given datetime value (datetime.date)
     '''
     return dt.datetime.strptime(x.strftime('%Y%m%d'), '%Y%m%d')
+
+def make_future_datelist(date_list, days: int):
+    # Generate list of sequence of days for predictions
+    date_list_future = pd.date_range(date_list[-1], periods=days, freq='1d').tolist()
+
+    # Convert Pandas Timestamp to Datetime object (for transformation) --> FUTURE
+    date_list_future_ = []
+    for this_timestamp in date_list_future:
+        date_list_future_.append(this_timestamp.date())
+    return date_list_future_
