@@ -3,22 +3,10 @@ import pandas as pd
 from keras.saving.save import load_model
 from matplotlib import pyplot as plt
 from pylab import rcParams
-from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint, TensorBoard
 import models as models
 from moose import feed_moose
 from utils import data_utils as utils
-
-# parameters
-ticker = "NFLX"  # stock ticker
-years = 10  # years of stock history to get
-validation_split = 0.2  # percent of dataset to use for validation
-epochs = 70
-batch_size = 8
-features = ["Open", "Close", "High", "Low", "Volume"]
-value_to_predict = "Open"
-n_future = 30  # Number of days we want to predict into the future
-n_past = 100  # Number of past days we want to use to predict the future
-model_ID = "2"
 
 if __name__ == '__main__':
     # plead for food
@@ -98,9 +86,10 @@ if __name__ == '__main__':
         rlr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10, verbose=1)
         mcp = ModelCheckpoint(filepath='weights.h5', monitor='val_loss', verbose=1, save_best_only=True,
                               save_weights_only=True)
+        tb = TensorBoard('logs')
 
         # fit the model
-        history = model.fit(X_train, y_train, shuffle=True, epochs=epochs, callbacks=[es, rlr, mcp],
+        history = model.fit(X_train, y_train, shuffle=True, epochs=epochs, callbacks=[es, rlr, mcp, tb],
                             validation_split=validation_split, verbose=1, batch_size=batch_size)
         model.save(f"model_{features[i]}.h5")
 

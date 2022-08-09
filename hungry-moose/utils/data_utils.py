@@ -139,9 +139,9 @@ def create_training_sets(training_set: np.array, pred_column: int, n_past: int, 
     X_train = []
     y_train = []
 
-    for i in range(n_past, len(training_set) + 1):
+    for i in range(n_past, len(training_set)):
         X_train.append(training_set[i - n_past:i, 0:training_set.shape[1]])
-        y_train.append(training_set[i - 1, pred_column])
+        y_train.append(training_set[i, pred_column])
 
     return np.array(X_train), np.array(y_train)
 
