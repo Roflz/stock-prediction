@@ -1,0 +1,4 @@
+# To ignore things
+
+.idea/
+.ipynb_checkpoints/
