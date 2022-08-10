@@ -4,9 +4,13 @@ from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 import models
 
 
-class ModelBitch:
+class ModelTit:
 
     def __init__(self, model_ID, input_shape):
+        """
+
+        :type model_ID: str
+        """
         self.model = models.get_model(model_ID, input_shape)
         self.history = keras.Model.fit
 
@@ -30,9 +34,12 @@ class ModelBitch:
         self.history = self.model.fit(X_train, y_train, shuffle=True, epochs=epochs, callbacks=[es, rlr, mcp],
                                       validation_split=validation_split, verbose=1, batch_size=batch_size)
 
-        if (save == True):
+        if save:
             self.model.save(f"model_{save_name}.h5")
 
-    def predict(self, X_train, n_past):
-        return self.model.predict(X_train[n_past:])
+    def predict(self, X_train, n_future=1, past=False, future=False):
+        if past:
+            return self.model.predict(X_train[:])
+        elif future:
+            return self.model.predict(X_train[-n_future:])
 
