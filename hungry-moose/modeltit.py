@@ -1,4 +1,5 @@
 import keras
+import numpy
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 
 import models
@@ -6,15 +7,37 @@ import models
 
 class ModelTit:
 
-    def __init__(self, model_ID, input_shape):
+    def __init__(self, X_train, y_train, model_ID: str):
         """
 
+        :param X_train:
+        :type X_train:
+        :param y_train:
+        :type y_train:
+        :param model_ID:
         :type model_ID: str
         """
-        self.model = models.get_model(model_ID, input_shape)
+        self.model = models.get_model(model_ID, (X_train.shape[1], X_train.shape[2]))
         self.history = keras.Model.fit
 
     def fit(self, X_train, y_train, epochs, validation_split, batch_size, save=False, save_name=""):
+        """
+
+        :param X_train:
+        :type X_train:
+        :param y_train:
+        :type y_train:
+        :param epochs:
+        :type epochs:
+        :param validation_split:
+        :type validation_split:
+        :param batch_size:
+        :type batch_size:
+        :param save:
+        :type save:
+        :param save_name:
+        :type save_name:
+        """
         # Notes:
         # EarlyStopping - Stop training when a monitored metric has stopped improving.
         # monitor - quantity to be monitored.
@@ -31,15 +54,15 @@ class ModelTit:
                               save_weights_only=True)
 
         # fit the model
-        self.history = self.model.fit(X_train, y_train, shuffle=True, epochs=epochs, callbacks=[es, rlr, mcp],
+        self.history = self.model.fit(X_train, y_train, shuffle=True, epochs=epochs, callbacks=[rlr, mcp],
                                       validation_split=validation_split, verbose=1, batch_size=batch_size)
 
         if save:
             self.model.save(f"model_{save_name}.h5")
 
-    def predict(self, X_train, n_future=1, past=False, future=False):
-        if past:
-            return self.model.predict(X_train[:])
-        elif future:
-            return self.model.predict(X_train[-n_future:])
+    # def predict(self, input, n_future, past=False, future=False):
+    #     if past:
+    #         return self.model.predict(input)
+    #     elif future:
+    #         return self.model.predict(input[-n_future:])
 

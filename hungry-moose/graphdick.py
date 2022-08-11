@@ -12,7 +12,7 @@ def plot_data(dataset_train, predictions_train, predictions_future, features, da
     dataset_train.index = pd.to_datetime(dataset_train.index)
 
     # Plot parameters
-    plt.plot(predictions_future.index, predictions_future['Open'], color='r', label='Predicted Stock Price')
+    plt.plot(predictions_future.index, predictions_future['Open'], 'ro', color='r', label='Predicted Stock Price')
     plt.plot(predictions_train.loc[:].index, predictions_train.loc[:]['Open'], color='orange', label='Training predictions')
     plt.plot(dataset_train.loc[:].index, dataset_train.loc[:]['Open'], color='b', label='Actual Stock Price')
 
@@ -25,63 +25,44 @@ def plot_data(dataset_train, predictions_train, predictions_future, features, da
     plt.xlabel('Timeline', family='Arial', fontsize=10)
     plt.ylabel('Stock Price Value', family='Arial', fontsize=10)
     plt.xticks(rotation=45, fontsize=8)
-    plt.show()
 
+def plot_loss(loss, val_loss):
+    plt.figure()
+    plt.plot(loss)
+    plt.plot(val_loss)
+    plt.title('Model loss')
+    plt.ylabel('Loss')
+    plt.xlabel('Epoch')
+    plt.legend(['Loss', 'Validation Loss'], loc='upper right')
 
-
-
-
-
-
-
-
-
-
-# # plot training loss against validation loss
-#
-# # Train your model for 60 epochs, using X_test and y_test as validation data
-# h_callback = model.fit(X_train, y_train, epochs=60, validation_data=(X_test, y_test), verbose=0)
-#
-# # Extract from the h_callback object loss and val_loss to plot the learning curve
-# plot_loss(h_callback.history['loss'], h_callback.history['val_loss'])
 #
 #
-# def plot_loss(loss, val_loss):
-#     plt.figure()
-#     plt.plot(loss)
-#     plt.plot(val_loss)
-#     plt.title('Model loss')
-#     plt.ylabel('Loss')
-#     plt.xlabel('Epoch')
-#     plt.legend(['Train', 'Test'], loc='upper right')
-#     plt.show()
-#
-#
-# # plot accuracy vs number of training samples
-#
-# train_sizes = array([125, 502, 879, 1255])
-# # Store initial model weights
-# init_weights = model.get_weights()
-# # Lists for storing accuracies
-# train_accs = []
-# tests_accs = []
-#
-# for train_size in train_sizes:
-#     # Split a fraction according to train_size
-#     X_train_frac, _, y_train_frac, _ = train_test_split(X_train, y_train, train_size=train_size)
-#     # Set model initial weights
-#     model.set_weights(initial_weights)
-#     # Fit model on the training set fraction
-#     model.fit(X_train_frac, y_train_frac, epochs=100, verbose=0, callbacks=[EarlyStopping(monitor='loss', patience=1)])
-#     # Get the accuracy for this training set fraction
-#     train_acc = model.evaluate(X_train_frac, y_train_frac, verbose=0)[1]
-#     train_accs.append(train_acc)
-#     # Get the accuracy on the whole test set
-#     test_acc = model.evaluate(X_test, y_test, verbose=0)[1]
-#     test_accs.append(test_acc)
-#     print("Done with size: ", train_size)
-#
-# plot_results(train_accs, test_accs)
+# plot accuracy vs number of training samples
+
+# def plot_acc_vs_sample_size():
+    # train_sizes = array([125, 502, 879, 1255])
+    # # Store initial model weights
+    # init_weights = model.get_weights()
+    # # Lists for storing accuracies
+    # train_accs = []
+    # tests_accs = []
+    #
+    # for train_size in train_sizes:
+    #     # Split a fraction according to train_size
+    #     X_train_frac, _, y_train_frac, _ = train_test_split(X_train, y_train, train_size=train_size)
+    #     # Set model initial weights
+    #     model.set_weights(initial_weights)
+    #     # Fit model on the training set fraction
+    #     model.fit(X_train_frac, y_train_frac, epochs=100, verbose=0, callbacks=[EarlyStopping(monitor='loss', patience=1)])
+    #     # Get the accuracy for this training set fraction
+    #     train_acc = model.evaluate(X_train_frac, y_train_frac, verbose=0)[1]
+    #     train_accs.append(train_acc)
+    #     # Get the accuracy on the whole test set
+    #     test_acc = model.evaluate(X_test, y_test, verbose=0)[1]
+    #     test_accs.append(test_acc)
+    #     print("Done with size: ", train_size)
+    #
+    # plot_results(train_accs, test_accs)
 #
 # # Comparing activation functions
 #

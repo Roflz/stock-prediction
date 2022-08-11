@@ -1,3 +1,5 @@
+import datetime
+
 import pandas as pd
 import pandas_datareader as pdr
 import numpy as np
@@ -140,22 +142,42 @@ def create_training_sets(training_set: np.array, pred_column: int, n_past: int, 
     y_train = []
 
     for i in range(n_past, len(training_set)):
-        X_train.append(training_set[i - n_past:i, 0:training_set.shape[1]])
+        X_train.append(training_set[i - n_past:i, :])
         y_train.append(training_set[i, pred_column])
-
     return np.array(X_train), np.array(y_train)
 
+def create_prediction_input(training_set: np.array, n_past: int, n_future: int):
+    """Formats training datasets for modeling, currently only set up for 1 outcome.
+        X_train keeps outcome column for use as a feature
+
+        Parameters
+        ----------
+        training_set: nparray
+            set of training data
+        n_past: int
+            Number of past days we want to use to predict the future
+        n_future: int
+            Number of days we want to predict into the future
+
+        Returns
+        -------
+        X_train: nparray
+            X_train dataset, 3D, with size: (training_set.size - n_past - n_future + 1, n_past, # of features)
+        """
+    input = [training_set[-n_past:, :]]
+    return np.array(input)
 
 # ---> Special function: convert <datetime.date> to <Timestamp>
 def datetime_to_timestamp(x):
-    '''
+    """
         x : a given datetime value (datetime.date)
-    '''
+    """
     return dt.datetime.strptime(x.strftime('%Y%m%d'), '%Y%m%d')
+
 
 def make_future_datelist(date_list, days: int):
     # Generate list of sequence of days for predictions
-    date_list_future = pd.date_range(date_list[-1], periods=days, freq='1d').tolist()
+    date_list_future = pd.date_range(date_list[-1] + datetime.timedelta(days=1), periods=days, freq='B').tolist()
 
     # Convert Pandas Timestamp to Datetime object (for transformation) --> FUTURE
     date_list_future_ = []
