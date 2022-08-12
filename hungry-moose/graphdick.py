@@ -41,30 +41,46 @@ def plot_loss(loss, val_loss):
 
 
 # plot accuracy vs number of training samples
-def plot_acc_vs_sample_size(md: ModelTit, db: DataBitch, train_sizes, value_to_predict):
+def plot_error_vs_sample_size(md: ModelTit, training_data, training_sizes):
+    # Make labels for plot
+    # training_sizes_labels = [str(x) for x in training_sizes]
     # Lists for storing accuracies
     train_accs = []
-    tests_accs = []
-    X_train = db.training_data[f"X_train_{value_to_predict}"]
-    y_train = db.training_data[f"y_train_{value_to_predict}"]
+    test_accs = []
+    X = training_data[0]
+    y = training_data[1]
 
-    for train_size in train_sizes:
+    for train_size in training_sizes:
         # Split a fraction according to train_size
-        # X_train_frac, _, y_train_frac, _ = train_test_split(X_train, y_train, train_size=train_size)
-        # # Set model initial weights
-        # model.set_weights(initial_weights)
-        md.model.compile(loss='mean_squared_error', optimizer='adam', metrics=['acc'])
+        X_ = X[-train_size:]
+        y_ = y[-train_size:]
+        X_train = X_[:int(X_.shape[0] * 0.8)]
+        X_test = X_[int(X_.shape[0] * 0.8):]
+        y_train = y_[:int(y_.shape[0] * 0.8)]
+        y_test = y_[int(y_.shape[0] * 0.8):]
+
+        md.model.compile(loss='mean_squared_error', optimizer='adam', metrics=['mse'])
         # Fit model on the training set fraction
-        md.model.fit(X_train, y_train, shuffle=True, epochs=100, validation_split=0.8, verbose=1)
+        md.model.fit(X_train, y_train, shuffle=True, epochs=50, verbose=1)
         # Get the accuracy for this training set fraction
-        train_acc = model.evaluate(X_train_frac, y_train_frac, verbose=0)[1]
+        train_acc = md.model.evaluate(X_train, y_train, verbose=0)[1]
         train_accs.append(train_acc)
         # Get the accuracy on the whole test set
-        test_acc = model.evaluate(X_test, y_test, verbose=0)[1]
+        test_acc = md.model.evaluate(X_test, y_test, verbose=0)[1]
         test_accs.append(test_acc)
         print("Done with size: ", train_size)
 
-    plot_results(train_accs, test_accs)
+    # Plot figure
+    # xs = [x for x in range(len(training_sizes))]
+    plt.figure()
+    # plt.xticks(xs, training_sizes_labels)
+    plt.plot(training_sizes, train_accs, 'o', color='r', label='MSE Train')
+    plt.plot(training_sizes, test_accs, 'o', color='b', label='MSE Test')
+    plt.title('Error vs Training Size')
+    plt.ylabel('MSE')
+    plt.xlabel('Training Size')
+    plt.legend(['MSE Train', 'MSE Test'], loc='upper right')
+    plt.show()
 #
 # # Comparing activation functions
 #
@@ -134,11 +150,11 @@ def plot_acc_vs_sample_size(md: ModelTit, db: DataBitch, train_sizes, value_to_p
 #     plt.legend(['Train', 'Test', 'Train with Batch Normalization', 'Test with Batch Normalization'], loc='best')
 #     plt.show()
 #
-#     # Use SKLearn to automatically choose best parameters for model
-#
-#     # Creates a model given an activation and learning rate
-#
-#
+    # Use SKLearn to automatically choose best parameters for model
+
+    # Creates a model given an activation and learning rate
+
+
 # def create_model(learning_rate, activation):
 #     # Create an Adam optimizer with the given learning rate
 #     opt = Adam(lr=learning_rate)
