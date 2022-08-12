@@ -1,54 +1,63 @@
-from matplotlib import pyplot as plt
-
+import numpy as np
 import graphdick as gd
 from databitch import DataBitch
 from modeltit import ModelTit
 from moose import feed_moose
+from matplotlib import pyplot as plt
+from utils import data_utils as utils
 
-# parameters
-years = 3
-n_past = 30
-n_future = 1
-features=["Open", "Close", "High", "Low", "Volume"]
-models = {}
+# Parameters
+ticker = "SBUX"
+years = 10
+n_past = 100
+n_future = 30
+features = ["Open", "Close", "High", "Low", "Volume"]
+model_dict = {}
 value_to_predict = "Open"
-epochs = 200
-batch_size = 8
+epochs = 10
+batch_size = 256
 
 # plead for food
 feed_moose.moose_is_hungry()
 
 # Initialize data
-db = DataBitch("NFLX", years=years, scaler="MinMax", features=features, value_to_predict=value_to_predict,
+db = DataBitch(ticker, years=years, scaler="MinMax", features=features, value_to_predict=value_to_predict,
                n_future=n_future, n_past=n_past)
 
-# Create models
+# Make and fit models
 if n_future > 1:
     for feature in features:
-        models[feature] = ModelTit(db.training_data[f"X_train_{feature}"],
-                                   db.training_data[f"y_train_{feature}"],
-                                   model_ID="2")
+        # Create model classes
+        model_dict[feature] = ModelTit(db.training_data[f"X_train_{feature}"],
+                                       db.training_data[f"y_train_{feature}"],
+                                       model_ID="2")
+        # Compile models
+        model_dict[feature].model.compile(loss='mean_squared_error', optimizer='adam')
+        # Fit models
+        model_dict[feature].fit(db.training_data[f"X_train_{feature}"],
+                                db.training_data[f"y_train_{feature}"],
+                                epochs=epochs, validation_split=0.2, batch_size=batch_size, save=f"{feature}_{ticker}")
 else:
-    models[value_to_predict] = ModelTit(db.training_data[f"X_train_{value_to_predict}"],
-                                        db.training_data[f"y_train_{value_to_predict}"],
-                                        model_ID="2")
-
-# Fit models
-if n_future > 1:
-    for feature in features:
-        models[feature].fit(db.training_data[f"X_train_{feature}"],
-                            db.training_data[f"y_train_{feature}"],
-                            epochs=epochs, validation_split=0.2, batch_size=batch_size)
-else:
-    models[value_to_predict].fit(db.training_data[f"X_train_{value_to_predict}"],
-                                 db.training_data[f"y_train_{value_to_predict}"],
-                                 epochs=epochs, validation_split=0.2, batch_size=batch_size)
-
-
+    # Create model classes
+    model_dict[value_to_predict] = ModelTit(db.training_data[f"X_train_{value_to_predict}"],
+                                            db.training_data[f"y_train_{value_to_predict}"],
+                                            model_ID="2")
+    # Compile models
+    model_dict[value_to_predict].model.compile(loss='mean_squared_error', optimizer='adam')
+    # Fit models
+    model_dict[value_to_predict].fit(db.training_data[f"X_train_{value_to_predict}"],
+                                     db.training_data[f"y_train_{value_to_predict}"],
+                                     epochs=epochs, validation_split=0.2, batch_size=batch_size)
 
 # Perform predictions
-db.predictions_train = models[value_to_predict].model.predict(db.training_data[f"X_train_{value_to_predict}"])
-db.predictions_future = models[value_to_predict].model.predict(db.prediction_input)
+# Training data
+db.predictions_train = model_dict[value_to_predict].model.predict(db.training_data[f"X_train_{value_to_predict}"])
+
+# Future predictions
+if n_future > 1:
+    db.predictions_future = ModelTit.predict_by_day(db.training_set_scaled, n_past, n_future, features, value_to_predict, model_dict)
+else:
+    db.predictions_future = model_dict[value_to_predict].model.predict(db.prediction_input)
 
 # rescale data
 db.sc_transform_predictions(inverse=True)
@@ -64,5 +73,8 @@ gd.plot_data(db.dataset_train, predictions_train, predictions_future, db.feature
 gd.plt.show()
 
 # plot training loss against validation loss
-gd.plot_loss(models[value_to_predict].history.history['loss'], models[value_to_predict].history.history['val_loss'])
+gd.plot_loss(model_dict[value_to_predict].history.history['loss'],
+             model_dict[value_to_predict].history.history['val_loss'])
 plt.show()
+
+print(model_dict[value_to_predict].model.summary())

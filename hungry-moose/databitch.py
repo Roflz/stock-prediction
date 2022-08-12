@@ -16,8 +16,8 @@ class DataBitch:
         self.value_to_predict = value_to_predict
         self.n_future = n_future  # Number of days we want to predict into the future
         self.n_past = n_past  # Number of past days we want to use to predict the future
-        self.predictions_train = None
-        self.predictions_future = None
+        self.predictions_train = []
+        self.predictions_future = []
 
         # initialize data
         self.dataset = utils.get_data(ticker, years)  # dataset to be used for predicting

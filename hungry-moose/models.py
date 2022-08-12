@@ -16,8 +16,6 @@ def get_model(model: str, input_shape):
             model.add(Dropout(0.25))
             # Output layer
             model.add(Dense(units=1, activation='linear'))
-            # Compiling the Neural Network
-            model.compile(optimizer=Adam(learning_rate=0.01), loss='mean_squared_error')
             return model
         case "2":
             # initialize model as a sequential one with 96 units in the output’s dimensionality
@@ -35,10 +33,6 @@ def get_model(model: str, input_shape):
             model.add(LSTM(units=96))
             model.add(Dropout(0.2))
             model.add(Dense(units=1))
-            # now compile the model
-            # used loss='mean_squared_error' because it is a regression problem
-            # use the adam optimizer to update network weights iteratively based on training data
-            model.compile(loss='mean_squared_error', optimizer='adam')
             return model
         case _:
             print(f"model {model} not found")

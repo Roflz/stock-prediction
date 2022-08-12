@@ -1,5 +1,7 @@
 import pandas as pd
 from matplotlib import rcParams, pyplot as plt
+from databitch import DataBitch
+from modeltit import ModelTit
 
 # Set plot size
 rcParams['figure.figsize'] = 14, 5
@@ -12,8 +14,9 @@ def plot_data(dataset_train, predictions_train, predictions_future, features, da
     dataset_train.index = pd.to_datetime(dataset_train.index)
 
     # Plot parameters
-    plt.plot(predictions_future.index, predictions_future['Open'], 'ro', color='r', label='Predicted Stock Price')
-    plt.plot(predictions_train.loc[:].index, predictions_train.loc[:]['Open'], color='orange', label='Training predictions')
+    plt.plot(predictions_future.index, predictions_future['Open'], 'o', color='r', label='Predicted Stock Price')
+    plt.plot(predictions_train.loc[:].index, predictions_train.loc[:]['Open'], color='orange',
+             label='Training predictions')
     plt.plot(dataset_train.loc[:].index, dataset_train.loc[:]['Open'], color='b', label='Actual Stock Price')
 
     plt.axvline(x=min(predictions_future.index), color='green', linewidth=2, linestyle='--')
@@ -26,6 +29,7 @@ def plot_data(dataset_train, predictions_train, predictions_future, features, da
     plt.ylabel('Stock Price Value', family='Arial', fontsize=10)
     plt.xticks(rotation=45, fontsize=8)
 
+
 def plot_loss(loss, val_loss):
     plt.figure()
     plt.plot(loss)
@@ -35,34 +39,32 @@ def plot_loss(loss, val_loss):
     plt.xlabel('Epoch')
     plt.legend(['Loss', 'Validation Loss'], loc='upper right')
 
-#
-#
-# plot accuracy vs number of training samples
 
-# def plot_acc_vs_sample_size():
-    # train_sizes = array([125, 502, 879, 1255])
-    # # Store initial model weights
-    # init_weights = model.get_weights()
-    # # Lists for storing accuracies
-    # train_accs = []
-    # tests_accs = []
-    #
-    # for train_size in train_sizes:
-    #     # Split a fraction according to train_size
-    #     X_train_frac, _, y_train_frac, _ = train_test_split(X_train, y_train, train_size=train_size)
-    #     # Set model initial weights
-    #     model.set_weights(initial_weights)
-    #     # Fit model on the training set fraction
-    #     model.fit(X_train_frac, y_train_frac, epochs=100, verbose=0, callbacks=[EarlyStopping(monitor='loss', patience=1)])
-    #     # Get the accuracy for this training set fraction
-    #     train_acc = model.evaluate(X_train_frac, y_train_frac, verbose=0)[1]
-    #     train_accs.append(train_acc)
-    #     # Get the accuracy on the whole test set
-    #     test_acc = model.evaluate(X_test, y_test, verbose=0)[1]
-    #     test_accs.append(test_acc)
-    #     print("Done with size: ", train_size)
-    #
-    # plot_results(train_accs, test_accs)
+# plot accuracy vs number of training samples
+def plot_acc_vs_sample_size(md: ModelTit, db: DataBitch, train_sizes, value_to_predict):
+    # Lists for storing accuracies
+    train_accs = []
+    tests_accs = []
+    X_train = db.training_data[f"X_train_{value_to_predict}"]
+    y_train = db.training_data[f"y_train_{value_to_predict}"]
+
+    for train_size in train_sizes:
+        # Split a fraction according to train_size
+        # X_train_frac, _, y_train_frac, _ = train_test_split(X_train, y_train, train_size=train_size)
+        # # Set model initial weights
+        # model.set_weights(initial_weights)
+        md.model.compile(loss='mean_squared_error', optimizer='adam', metrics=['acc'])
+        # Fit model on the training set fraction
+        md.model.fit(X_train, y_train, shuffle=True, epochs=100, validation_split=0.8, verbose=1)
+        # Get the accuracy for this training set fraction
+        train_acc = model.evaluate(X_train_frac, y_train_frac, verbose=0)[1]
+        train_accs.append(train_acc)
+        # Get the accuracy on the whole test set
+        test_acc = model.evaluate(X_test, y_test, verbose=0)[1]
+        test_accs.append(test_acc)
+        print("Done with size: ", train_size)
+
+    plot_results(train_accs, test_accs)
 #
 # # Comparing activation functions
 #

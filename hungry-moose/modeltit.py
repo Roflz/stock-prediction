@@ -1,5 +1,8 @@
 import keras
 import numpy
+import numpy as np
+
+from utils import data_utils as utils
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 
 import models
@@ -20,7 +23,7 @@ class ModelTit:
         self.model = models.get_model(model_ID, (X_train.shape[1], X_train.shape[2]))
         self.history = keras.Model.fit
 
-    def fit(self, X_train, y_train, epochs, validation_split, batch_size, save=False, save_name=""):
+    def fit(self, X_train, y_train, epochs, validation_split, batch_size, save=""):
         """
 
         :param X_train:
@@ -57,12 +60,21 @@ class ModelTit:
         self.history = self.model.fit(X_train, y_train, shuffle=True, epochs=epochs, callbacks=[rlr, mcp],
                                       validation_split=validation_split, verbose=1, batch_size=batch_size)
 
-        if save:
-            self.model.save(f"model_{save_name}.h5")
+        if save != "":
+            self.model.save(f"models/model_{save}.h5")
 
-    # def predict(self, input, n_future, past=False, future=False):
-    #     if past:
-    #         return self.model.predict(input)
-    #     elif future:
-    #         return self.model.predict(input[-n_future:])
+    def predict(self, input):
+        return self.model.predict(input)
 
+    def predict_by_day(training_set, n_past, n_future, features, value_to_predict, model_dict):
+        predictions = []
+        pred_input = utils.create_prediction_input(training_set, n_past, n_future)
+        for i in range(0, n_future):
+            pred_next_day = []
+            for feature in features:
+                pred_next_day = np.append(pred_next_day, model_dict[feature].predict(pred_input[-1:]))
+                if feature == value_to_predict:
+                    predictions = np.append(predictions, model_dict[feature].predict(pred_input[-1:]))
+            pred_next_day = np.append(pred_input[i][-n_past + 1:], pred_next_day.reshape(1, -1), axis=0)
+            pred_input = np.append(pred_input, np.array([pred_next_day]), axis=0)
+        return predictions.reshape((-1, 1))
