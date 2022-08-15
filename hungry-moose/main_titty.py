@@ -21,8 +21,15 @@ batch_size = 256
 feed_moose.moose_is_hungry()
 
 # Initialize data
-db = DataBitch(ticker, years=years, scaler="MinMax", features=features, value_to_predict=value_to_predict,
-               n_future=n_future, n_past=n_past)
+db = DataBitch(
+    ticker,
+    years=years,
+    scaler="MinMax",
+    features=features,
+    value_to_predict=value_to_predict,
+    n_future=n_future,
+    n_past=n_past
+)
 
 # Make and fit models
 if n_future > 1:
@@ -49,13 +56,14 @@ else:
                                      db.training_data[f"y_train_{value_to_predict}"],
                                      epochs=epochs, validation_split=0.2, batch_size=batch_size)
 
-# Perform predictions
+### Perform predictions
 # Training data
 db.predictions_train = model_dict[value_to_predict].model.predict(db.training_data[f"X_train_{value_to_predict}"])
 
 # Future predictions
 if n_future > 1:
-    db.predictions_future = ModelTit.predict_by_day(db.training_set_scaled, n_past, n_future, features, value_to_predict, model_dict)
+    db.predictions_future = ModelTit.predict_by_day(db.training_set_scaled, n_past, n_future, features,
+                                                    value_to_predict, model_dict)
 else:
     db.predictions_future = model_dict[value_to_predict].model.predict(db.prediction_input)
 
