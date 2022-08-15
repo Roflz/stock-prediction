@@ -20,7 +20,8 @@ class DataBitch:
         self.predictions_future = []
 
         # initialize data
-        self.dataset = utils.get_data(ticker, years)  # dataset to be used for predicting
+        # self.dataset = utils.get_data(ticker, years)  # dataset to be used for predicting
+        self.dataset = utils.get_data_from_csv("SBUX.csv")
         self.date_list = utils.extract_dates(self.dataset)  # list of dates from dataset to use for visualization
         self.date_list_future = utils.make_future_datelist(self.date_list, n_future)
         self.dataset_train = utils.pick_features(self.dataset, features)  # dataset for training
@@ -38,7 +39,14 @@ class DataBitch:
         # run any setup methods
         self.__fit_prediction_scaler()
 
-    def __create_training_sets(self, pred_column):
+    def __create_training_sets(self, pred_column: int) -> np.ndarray:
+        """
+
+        :param pred_column: column where value to predict is in the DataFrame
+        :type pred_column: int
+        :return: X_train, y_train
+        :rtype: ndarray, ndarray
+        """
         return utils.create_training_sets(self.training_set_scaled, pred_column, self.n_past, self.n_future)
 
     def __fit_prediction_scaler(self):

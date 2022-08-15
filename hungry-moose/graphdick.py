@@ -1,5 +1,10 @@
+import keras
+import numpy as np
 import pandas as pd
 from matplotlib import rcParams, pyplot as plt
+from pandas import DataFrame
+from sklearn.model_selection import RandomizedSearchCV, KFold
+
 from databitch import DataBitch
 from modeltit import ModelTit
 
@@ -7,7 +12,8 @@ from modeltit import ModelTit
 rcParams['figure.figsize'] = 14, 5
 
 
-def plot_data(dataset_train, predictions_train, predictions_future, features, date_list):
+def plot_data(dataset_train: DataFrame, predictions_train: DataFrame, predictions_future: DataFrame,
+              features: list[str], date_list: list):
     # Parse training set timestamp
     dataset_train = pd.DataFrame(dataset_train, columns=features)
     dataset_train.index = date_list
@@ -81,6 +87,46 @@ def plot_error_vs_sample_size(md: ModelTit, training_data, training_sizes):
     plt.xlabel('Training Size')
     plt.legend(['MSE Train', 'MSE Test'], loc='upper right')
     plt.show()
+
+
+def plot_error_vs_batch_size(md: ModelTit, training_data, batch_sizes: list[int]):
+    # Make labels for plot
+    # training_sizes_labels = [str(x) for x in training_sizes]
+    # Lists for storing accuracies
+    train_accs = []
+    test_accs = []
+    X = training_data[0]
+    y = training_data[1]
+
+    for batch_size in batch_sizes:
+        # Split a fraction according to train_size
+
+        md.model.compile(loss='mean_squared_error', optimizer='adam', metrics=['mse'])
+        # Fit model on the training set fraction
+        md.model.fit(X, y, shuffle=True, epochs=50, verbose=1)
+        # Get the accuracy for this training set fraction
+        train_acc = md.model.evaluate(X, y, verbose=0)[1]
+        train_accs.append(train_acc)
+        # Get the accuracy on the whole test set
+        test_acc = md.model.evaluate(X_test, y_test, verbose=0)[1]
+        test_accs.append(test_acc)
+        print("Done with size: ", train_size)
+
+    # Plot figure
+    # xs = [x for x in range(len(training_sizes))]
+    plt.figure()
+    # plt.xticks(xs, training_sizes_labels)
+    plt.plot(training_sizes, train_accs, 'o', color='r', label='MSE Train')
+    plt.plot(training_sizes, test_accs, 'o', color='b', label='MSE Test')
+    plt.title('Error vs Training Size')
+    plt.ylabel('MSE')
+    plt.xlabel('Training Size')
+    plt.legend(['MSE Train', 'MSE Test'], loc='upper right')
+    plt.show()
+
+
+def plot_error_vs_n_past():
+    pass
 #
 # # Comparing activation functions
 #
@@ -150,9 +196,9 @@ def plot_error_vs_sample_size(md: ModelTit, training_data, training_sizes):
 #     plt.legend(['Train', 'Test', 'Train with Batch Normalization', 'Test with Batch Normalization'], loc='best')
 #     plt.show()
 #
-    # Use SKLearn to automatically choose best parameters for model
+# Use SKLearn to automatically choose best parameters for model
 
-    # Creates a model given an activation and learning rate
+# Creates a model given an activation and learning rate
 
 
 # def create_model(learning_rate, activation):
@@ -170,21 +216,23 @@ def plot_error_vs_sample_size(md: ModelTit, training_data, training_sizes):
 #     return model
 #
 #
-# # Import KerasClassifier from tensorflow.keras scikit learn wrappers
-# from tensorflow.keras.wrappers.scikit_learn import KerasClassifier
-#
-# # Create a KerasClassifier
-# model = KerasClassifier(build_fn=create_model)
-#
-# # Define the parameters to try out
-# params = {'activation': ['relu', 'tanh'], 'batch_size': [32, 128, 256],
-#           'epochs': [50, 100, 200], 'learning_rate': [0.1, 0.01, 0.001]}
-#
-# # Create a randomize search cv object passing in the parameters to try
-# random_search = RandomizedSearchCV(model, param_distributions=params, cv=KFold(3))
-#
-# # Running random_search.fit(X,y) would start the search,but it takes too long!
-# show_results()
+
+# Use SKLearn to automatically choose best parameters for model
+from keras.wrappers.scikit_learn import KerasClassifier
+
+def optimize_parameters(model: keras.Model, X, y):
+    # Create a KerasClassifier
+    model = KerasClassifier(build_fn=model)
+
+    # Define the parameters to try out
+    params = {'activation': ['relu', 'tanh'], 'batch_size': [32, 128, 256],
+              'epochs': [50, 100, 200], 'learning_rate': [0.1, 0.01, 0.001]}
+
+    # Create a randomize search cv object passing in the parameters to try
+    random_search = RandomizedSearchCV(model, param_distributions=params, cv=KFold(3))
+
+    # Running random_search.fit(X,y) would start the search,but it takes too long!
+    random_search.fit(X,y)
 #
 # # cross validate results
 # # Import KerasClassifier from tensorflow.keras wrappers
