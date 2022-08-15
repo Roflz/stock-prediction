@@ -31,6 +31,8 @@ def get_data(ticker: str, years: int):
     df = pdr.get_data_yahoo(ticker, start=start_date, end=end_date)
     return df
 
+def get_data_from_csv(filename: str):
+    return pd.read_csv(filename)
 
 def extract_dates(dataset: DataFrame):
     """Extracts dates from pandas dataframe
@@ -47,7 +49,7 @@ def extract_dates(dataset: DataFrame):
         """
     dataset.reset_index(inplace=True)
     date_list = list(dataset['Date'])
-    date_list = [dt.datetime.strptime(str(date.date()), '%Y-%m-%d').date() for date in date_list]
+    # date_list = [dt.datetime.strptime(str(date.date()), '%Y-%m-%d').date() for date in date_list]
     return date_list
 
 
@@ -185,3 +187,6 @@ def make_future_datelist(date_list, days: int):
     for this_timestamp in date_list_future:
         date_list_future_.append(this_timestamp.date())
     return date_list_future_
+
+def save_to_csv(df: DataFrame, save_name: str):
+    df.to_csv(f"{save_name}.csv", index=False)

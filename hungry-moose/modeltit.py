@@ -1,45 +1,46 @@
 import keras
 import numpy
 import numpy as np
-
 from utils import data_utils as utils
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
-
 import models
 
 
 class ModelTit:
+    es = EarlyStopping(monitor='val_loss', min_delta=1e-10, patience=5, verbose=1)
+    rlr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10, verbose=1)
+    mcp = ModelCheckpoint(filepath='weights.h5', monitor='val_loss', verbose=1, save_best_only=True,
+                          save_weights_only=True)
+    my_callbacks = {"es": es, "rlr": rlr, "mcp": mcp}
 
-    def __init__(self, X_train, y_train, model_ID: str):
+    def __init__(self, X_train: np.ndarray, y_train: np.ndarray, model_ID: str):
         """
 
-        :param X_train:
-        :type X_train:
-        :param y_train:
-        :type y_train:
-        :param model_ID:
+        :param X_train: X_train data to fit the model
+        :type X_train: ndarray
+        :param y_train: y_train data to fit model
+        :type y_train: ndarray
+        :param model_ID: ID for model to use from models.py
         :type model_ID: str
         """
+        self.X_train = X_train
+        self.y_train = y_train
         self.model = models.get_model(model_ID, (X_train.shape[1], X_train.shape[2]))
         self.history = keras.Model.fit
 
-    def fit(self, X_train, y_train, epochs, validation_split, batch_size, save=""):
-        """
+    def fit(self, epochs: int, validation_split: float, batch_size: int, callbacks=["rlr", "mcp"], save=""):
+        """ Fits a model using the keras.Model.fit() method
 
-        :param X_train:
-        :type X_train:
-        :param y_train:
-        :type y_train:
-        :param epochs:
-        :type epochs:
-        :param validation_split:
-        :type validation_split:
-        :param batch_size:
-        :type batch_size:
-        :param save:
-        :type save:
-        :param save_name:
-        :type save_name:
+        :param callbacks: list of callbacks to use in fitting
+        :type callbacks: list(str)
+        :param epochs: number of epochs
+        :type epochs: int
+        :param validation_split: percent of data to use for validation in decimal format
+        :type validation_split: float
+        :param batch_size: batch size
+        :type batch_size: int
+        :param save: Save name if you want to save the model, leave blank to not save
+        :type save: str
         """
         # Notes:
         # EarlyStopping - Stop training when a monitored metric has stopped improving.
@@ -51,22 +52,44 @@ class ModelTit:
         # factor - factor by which the learning rate will be reduced. new_lr = lr * factor.
 
         # add any callbacks
-        es = EarlyStopping(monitor='val_loss', min_delta=1e-10, patience=5, verbose=1)
-        rlr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10, verbose=1)
-        mcp = ModelCheckpoint(filepath='weights.h5', monitor='val_loss', verbose=1, save_best_only=True,
-                              save_weights_only=True)
+        callbacks_input = []
+        for callback in callbacks:
+            callbacks_input.append(self.my_callbacks[callback])
 
         # fit the model
-        self.history = self.model.fit(X_train, y_train, shuffle=True, epochs=epochs, callbacks=[rlr, mcp],
+        self.history = self.model.fit(self.X_train, self.y_train, shuffle=True, epochs=epochs, callbacks=callbacks_input,
                                       validation_split=validation_split, verbose=1, batch_size=batch_size)
 
         if save != "":
             self.model.save(f"models/model_{save}.h5")
 
-    def predict(self, input):
+    def predict(self, input: np.ndarray) -> np.ndarray:
+        """
+
+        :return: array of predicted values output from model
+        :rtype: ndarray
+        :param input: array to feed into keras.model.predict() to make predictions
+        :type input: ndarray
+        """
         return self.model.predict(input)
 
-    def predict_by_day(training_set, n_past, n_future, features, value_to_predict, model_dict):
+    def predict_by_day(training_set: np.ndarray, n_past: int, n_future: int, features: list[str], value_to_predict: str,
+                       model_dict: dict[str, modeltit.ModelTit]) -> np.ndarray:
+        """
+
+        :param n_past: number of past days using to predict
+        :type n_past: int
+        :param n_future: number of future days to predict
+        :type n_future: int
+        :param features: list of features being used in model
+        :type features: list[str]
+        :param value_to_predict: value to predict
+        :type value_to_predict: str
+        :param model_dict: dictionary containing models
+        :type model_dict: dict[str, ModelTit]
+        :return: predicted values
+        :rtype: ndarray
+        """
         predictions = []
         pred_input = utils.create_prediction_input(training_set, n_past, n_future)
         for i in range(0, n_future):

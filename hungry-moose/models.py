@@ -1,9 +1,19 @@
+import keras
 from keras import Sequential
 from keras.layers import LSTM, Dropout, Dense
 from keras.optimizers import Adam
 
 
-def get_model(model: str, input_shape):
+def get_model(model: str, input_shape: tuple) -> keras.Model:
+    """
+
+    :param model: model ID corresponding to model that will be returned
+    :type model: str
+    :param input_shape: shape of data to be input to model
+    :type input_shape: tuple
+    :return: a keras.Model model
+    :rtype: keras.Model
+    """
     match model:
         case "1":
             # Initializing the Neural Network based on LSTM
