@@ -8,6 +8,7 @@ import pygsheets
 from databitch import DataBitch
 from modeltit import ModelTit, predict_by_day
 from moose import feed_moose
+import joblib
 from matplotlib import pyplot as plt
 from utils import data_utils as utils
 
@@ -81,6 +82,9 @@ def main_titty(ticker: str, value_to_predict: str):
             batch_size=batch_size
         )
     model_dict[value_to_predict].model.save(f"test_model_{ticker}.h5")
+    joblib.dump(db.scaler, f"test_scaler_{ticker}.h5")
+    joblib.dump(db.pred_scaler, f"test_pred_scaler_{ticker}.h5")
+
 
     # Perform predictions
     # Training data

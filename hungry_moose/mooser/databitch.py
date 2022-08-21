@@ -45,21 +45,22 @@ class DataBitch:
     #     return self.__my_variable
 
         # Initialize data
-        df: DataFrame = utils.get_data(ticker, years)                           # Full dataset from CSV
-        self.training_df: DataFrame = utils.pick_features(df, features)         # Cleaned dataset with desired features
+        self.df: DataFrame = utils.get_data(ticker, years)                           # Full dataset from CSV
+        self.training_df: DataFrame = utils.pick_features(self.df, features)         # Cleaned dataset with desired features
         self.training_set: np.ndarray = np.array(self.training_df)              # Cleaned dataset (numpy array)
 
         # Scale data
         self.scaler = utils.make_scaler(scaler)
+        self.pred_scaler = utils.make_scaler(scaler)
         self.training_set_scaled = self.scaler.fit_transform(self.training_set)
         self.training_data: Dict[str, np.ndarray] = self.__create_training_sets(features)   # Scaled data by feature
 
         # Make date lists for visualizations
-        self.date_list: list = utils.extract_dates(df)
+        self.date_list: list = utils.extract_dates(self.df)
         self.date_list_future: list = utils.make_future_datelist(self.date_list, n_future)
 
         # Setup prediction parameters
-        self.prediction_input: np.ndarray = utils.create_prediction_input(self.training_set, n_past)
+        self.prediction_input: np.ndarray = utils.create_prediction_input(self.training_set_scaled, n_past)
         self.predictions_train: np.ndarray = []                 # sc_transform_predictions
         self.predictions_future: np.ndarray = []                # sc_transform_predictions
         self.__fit_prediction_scaler()
@@ -81,14 +82,14 @@ class DataBitch:
 
     def __fit_prediction_scaler(self):
         pred_column = self.training_df.columns.get_loc(self.value_to_predict)
-        self.scaler.fit_transform(self.training_set[:, pred_column: pred_column + 1])
+        self.pred_scaler.fit_transform(self.training_set[:, pred_column: pred_column + 1])
 
     def sc_transform_predictions(self, inverse: bool = False):
         if inverse:
-            self.predictions_train = self.scaler.inverse_transform(self.predictions_train)
-            self.predictions_future = self.scaler.inverse_transform(self.predictions_future)
+            self.predictions_train = self.pred_scaler.inverse_transform(self.predictions_train)
+            self.predictions_future = self.pred_scaler.inverse_transform(self.predictions_future)
         else:
-            self.predictions_train = self.scaler.transform(self.predictions_train)
+            self.predictions_train = self.pred_scaler.transform(self.predictions_train)
 
     def format_for_plot(self, datapoints: np.ndarray, columns: list, date_list: list, train=False, future=False):
         """

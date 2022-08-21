@@ -12,6 +12,8 @@ import sklearn.preprocessing as skpp
 
 from dateutil.relativedelta import relativedelta
 from pandas import DataFrame
+from pandas._libs.tslibs.offsets import BDay, CustomBusinessDay
+from pandas.tseries.holiday import USFederalHolidayCalendar
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from typing import Tuple
 from mooser.databitch import DataBitch
@@ -43,6 +45,24 @@ def get_data(ticker: str, years: int) -> DataFrame:
         print('No internet. Checking local files...')
         df = get_data_from_csv(data_path)
         df['Date'] = pd.to_datetime(df['Date'], errors='coerce', format="%Y-%m-%d")
+    return df
+
+def get_data_days(ticker: str, days: int) -> DataFrame:
+    """
+    Gets stock data from yahoo finance, used for input to predictatitty
+
+    :param ticker: stock ticker to get
+    :param days: number of BUSINESS days of data to retrieve
+    :return: pandas dataframe with stock data
+    """
+    end_date = dt.date.today()
+    US_BUSINESS_DAY = CustomBusinessDay(calendar=USFederalHolidayCalendar())
+    # start_date = end_date - BDay(days)
+    start_date = end_date - (days + 1) * US_BUSINESS_DAY
+    print(f"Gathering {ticker} data from {start_date} to {end_date}")
+
+    # Retrieve from yahoo finance
+    df = pdr.get_data_yahoo(ticker, start=start_date, end=end_date)
     return df
 
 
@@ -215,8 +235,8 @@ def output_to_sheet(ticker: str, value_to_predict: str, db) -> None:
     wks.append_table(
         [db.date_list_future[0].strftime("%Y/%m/%d"),
          str(db.predictions_future[0][0]),
-         str(db.dataset[value_to_predict][db.dataset.shape[0] - 1]),
-         str(db.predictions_future[0][0] - db.dataset[value_to_predict][db.dataset.shape[0] - 1]),
+         str(db.df[value_to_predict][db.df.shape[0] - 1]),
+         str(db.predictions_future[0][0] - db.df[value_to_predict][db.df.shape[0] - 1]),
          '',
          '']
     )
