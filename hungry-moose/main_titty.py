@@ -1,6 +1,9 @@
 import argparse
 import numpy as np
+import pandas as pd
+
 import graphdick as gd
+import pygsheets
 from databitch import DataBitch
 from modeltit import ModelTit, predict_by_day
 from moose import feed_moose
@@ -20,11 +23,11 @@ def main_titty(ticker: str, value_to_predict: str):
     # Parameters
     years = 10
     n_past = 100
-    n_future = 30
+    n_future = 1
     features = ["Open", "Close", "High", "Low", "Volume"]
     model_dict = {}
-    epochs = 10
-    batch_size = 256
+    epochs = 1
+    batch_size = 64
 
     # plead for food
     feed_moose.moose_is_hungry()
@@ -51,7 +54,7 @@ def main_titty(ticker: str, value_to_predict: str):
             model_dict[feature].model.compile(loss='mean_squared_error', optimizer='adam')
 
             # Fit models
-            model_dict[feature].fit(
+            model_dict[feature].fit_model(
                 epochs=epochs,
                 validation_split=0.2,
                 batch_size=batch_size,
@@ -66,28 +69,47 @@ def main_titty(ticker: str, value_to_predict: str):
         model_dict[value_to_predict].model.compile(loss='mean_squared_error', optimizer='adam')
 
         # Fit models
-        model_dict[value_to_predict].fit(
+        model_dict[value_to_predict].fit_model(
             epochs=epochs,
             validation_split=0.2,
             batch_size=batch_size
         )
 
-    ### Perform predictions
+    # Perform predictions
     # Training data
     db.predictions_train = model_dict[value_to_predict].model.predict(db.training_data[f"X_train_{value_to_predict}"])
 
     # Future predictions
     if n_future > 1:
-        db.predictions_future = predict_by_day(db.training_set_scaled, n_past, n_future, features,
-                                                        value_to_predict, model_dict)
-
-        # db.predictions_future = ModelTit.predict_by_day(db.training_set_scaled, n_past, n_future, features,
-        #                                                 value_to_predict, model_dict)
+        db.predictions_future = predict_by_day(db.training_set_scaled, n_past, n_future, features, value_to_predict, model_dict)
     else:
         db.predictions_future = model_dict[value_to_predict].model.predict(db.prediction_input)
 
     # rescale data
     db.sc_transform_predictions(inverse=True)
+
+    # Output Predictions
+    # authorization
+    gc = pygsheets.authorize(service_file='gs_creds.json')
+
+    # Create empty dataframe
+    df = pd.DataFrame()
+
+    # open the google spreadsheet (where 'PY to Gsheet Test' is the name of my sheet)
+    sh = gc.open('stock_bitch')
+
+    # select the first sheet
+    try:
+        wks = sh.worksheet_by_title(ticker)
+    except pygsheets.exceptions.WorksheetNotFound:
+        wks = sh.add_worksheet(ticker)
+        df['Date', 'Prediction', 'Previous Day Price', 'Delta', 'Error', 'Buy/Sell'] = ''
+        wks.set_dataframe(df, (1, 1))
+    # wks = sh[0]
+
+    # update the first sheet with df, starting at cell B2.
+    wks.set_dataframe(df, (1, 1))
+
 
     # Format predictions for plotting
     predictions_train = db.format_for_plot(db.predictions_train, [value_to_predict], db.date_list, train=True)
@@ -102,7 +124,7 @@ def main_titty(ticker: str, value_to_predict: str):
     # plot training loss against validation loss
     gd.plot_loss(model_dict[value_to_predict].history.history['loss'],
                  model_dict[value_to_predict].history.history['val_loss'])
-    plt.show()
+    gd.plt.show()
 
     print(model_dict[value_to_predict].model.summary())
 
@@ -132,5 +154,8 @@ if __name__ == '__main__':
     )
 
     args = parser.parse_args()
-    main_titty(args.ticker, args.value_to_predict)
+    ticker_list = ['TSLA', 'NFLX', 'SBUX']
+    for ticker in ticker_list:
+        main_titty(ticker, args.value_to_predict)
+
 

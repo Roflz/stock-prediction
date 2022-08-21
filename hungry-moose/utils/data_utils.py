@@ -25,7 +25,7 @@ def get_data(ticker: str, years: int) -> DataFrame:
     start_date = end_date - relativedelta(years=years)
     print(f"Gathering {ticker} data from {start_date} to {end_date}")
 
-    data_path = os.path.join(os.getcwd(), 'stock_data', f'{ticker}_{years}_years.csv')
+    data_path = os.path.join(os.getcwd(), '../stock_data', f'{ticker}_{years}_years.csv')
     try:
         # Retrieve from yahoo finance and save it
         df = pdr.get_data_yahoo(ticker, start=start_date, end=end_date)

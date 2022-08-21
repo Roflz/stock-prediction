@@ -11,6 +11,14 @@ class ModelTit:
     mcp = ModelCheckpoint(filepath='weights.h5', monitor='val_loss', verbose=1, save_best_only=True,
                           save_weights_only=True)
     my_callbacks = {"es": es, "rlr": rlr, "mcp": mcp}
+    # Notes:
+    # EarlyStopping - Stop training when a monitored metric has stopped improving.
+    # monitor - quantity to be monitored.
+    # min_delta - minimum change in the monitored quantity to qualify as an improvement, i.e. an absolute change of
+    # less than min_delta, will count as no improvement.
+    # patience - number of epochs with no improvement after which training will be stopped.
+    # ReduceLROnPlateau - Reduce learning rate when a metric has stopped improving.
+    # factor - factor by which the learning rate will be reduced. new_lr = lr * factor.
 
     def __init__(self, X_train: np.ndarray, y_train: np.ndarray, model_ID: str):
         """
@@ -27,7 +35,7 @@ class ModelTit:
         self.model = models.get_model(model_ID, (X_train.shape[1], X_train.shape[2]))
         self.history = keras.Model.fit
 
-    def fit(self, epochs: int, validation_split: float, batch_size: int, callbacks=["rlr", "mcp"], save=""):
+    def fit_model(self, epochs: int, validation_split: float, batch_size: int, callbacks=["rlr", "mcp"], save=""):
         """ Fits a model using the keras.Model.fit() method
 
         :param callbacks: list of callbacks to use in fitting
@@ -41,14 +49,6 @@ class ModelTit:
         :param save: Save name if you want to save the model, leave blank to not save
         :type save: str
         """
-        # Notes:
-        # EarlyStopping - Stop training when a monitored metric has stopped improving.
-        # monitor - quantity to be monitored.
-        # min_delta - minimum change in the monitored quantity to qualify as an improvement, i.e. an absolute change of
-        # less than min_delta, will count as no improvement.
-        # patience - number of epochs with no improvement after which training will be stopped.
-        # ReduceLROnPlateau - Reduce learning rate when a metric has stopped improving.
-        # factor - factor by which the learning rate will be reduced. new_lr = lr * factor.
 
         # add any callbacks
         callbacks_input = []
@@ -72,10 +72,8 @@ class ModelTit:
         """
         return self.model.predict(input)
 
-
 def predict_by_day(training_set: np.ndarray, n_past: int, n_future: int, features: list[str], value_to_predict: str,
-                   model_dict: dict[str, ModelTit]) -> np.ndarray:
-
+                   model_dict: dict) -> np.ndarray:
     """
     :param n_past: number of past days using to predict
     :type n_past: int

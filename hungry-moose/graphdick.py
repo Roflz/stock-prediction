@@ -225,7 +225,7 @@ def optimize_parameters(model: keras.Model, X, y):
     model = KerasClassifier(build_fn=model)
 
     # Define the parameters to try out
-    params = {'activation': ['relu', 'tanh'], 'batch_size': [32, 128, 256],
+    params = {'activation': ['relu', 'tanh', 'linear'], 'batch_size': [32, 128, 256],
               'epochs': [50, 100, 200], 'learning_rate': [0.1, 0.01, 0.001]}
 
     # Create a randomize search cv object passing in the parameters to try
