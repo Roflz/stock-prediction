@@ -11,6 +11,12 @@ from dateutil.relativedelta import relativedelta
 from keras.saving.save import load_model
 from pandas import DataFrame
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from typing import Tuple
+
+
+# For file handling and directory organization
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+assert os.path.basename(project_root) == 'stock-prediction'
 
 
 def get_data(ticker: str, years: int) -> DataFrame:
@@ -25,7 +31,7 @@ def get_data(ticker: str, years: int) -> DataFrame:
     start_date = end_date - relativedelta(years=years)
     print(f"Gathering {ticker} data from {start_date} to {end_date}")
 
-    data_path = os.path.join(os.getcwd(), '../stock_data', f'{ticker}_{years}_years.csv')
+    data_path = os.path.join(project_root, 'stock_data', f'{ticker}_{years}_years.csv')
     try:
         # Retrieve from yahoo finance and save it
         df = pdr.get_data_yahoo(ticker, start=start_date, end=end_date)
@@ -38,10 +44,15 @@ def get_data(ticker: str, years: int) -> DataFrame:
 
 
 def get_data_from_csv(filepath: str) -> DataFrame:
+    """
+    Reads data from CSV file. Errors
+    :param filepath: full filepath to csv
+    :return: pandas dataframe
+    """
     if os.path.exists(filepath):
         return pd.read_csv(filepath)
     else:
-        raise FileNotFoundError(f'Does not exists: {filepath}\ncwd: {os.getcwd()}')
+        raise FileNotFoundError(f'Does not exists: {filepath}\nExecuting from cwd: {os.getcwd()}')
 
 
 def extract_dates(dataset: DataFrame) -> list:
@@ -52,9 +63,9 @@ def extract_dates(dataset: DataFrame) -> list:
     :return datelist: list of dates from dataset
     """
     dataset.reset_index(inplace=True)
-    date_list = list(dataset['Date'])
+    # date_list = list(dataset['Date'])
     # date_list = [dt.datetime.strptime(str(date.date()), '%Y-%m-%d').date() for date in date_list]
-    return date_list
+    return list(dataset['Date'])
 
 
 def pick_features(dataset: DataFrame, features: list) -> DataFrame:
@@ -86,7 +97,7 @@ def remove_commas_from_csv(dataset):
     return dataset.astype(float)
 
 
-def make_scaler(scaler_type: str) -> MinMaxScaler | StandardScaler | str:
+def make_scaler(scaler_type: str) -> MinMaxScaler | StandardScaler:
     """
     Creates a scaler
 
@@ -104,28 +115,21 @@ def make_scaler(scaler_type: str) -> MinMaxScaler | StandardScaler | str:
             raise NotImplementedError(f"scaler type {scaler_type} not configured")
 
 
-def create_training_sets(training_set: np.array, pred_column: int, n_past: int, n_future: int):
-    """Formats training datasets for modeling, currently only set up for 1 outcome.
-        X_train keeps outcome column for use as a feature
+def create_training_sets(training_set: np.ndarray, pred_column: int, n_past: int, n_future: int) \
+        -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Formats training datasets for modeling, currently only set up for 1 outcome.
+    TODO: use n_future for longer-running predictions
+    X_train keeps outcome column for use as a feature
 
-        Parameters
-        ----------
-        training_set: nparray
-            set of training data
-        pred_column: int
-            index of column to predict from training dataset
-        n_past: int
-            Number of past days we want to use to predict the future
-        n_future: int
-            Number of days we want to predict into the future
-
-        Returns
-        -------
-        X_train: nparray
-            X_train dataset, 3D, with size: (training_set.size - n_past - n_future + 1, n_past, # of features)
-        y_train: nparray
-            y_train dataset, 2D, with size: (training_set.size - n_past - n_future + 1, # of outcomes)
-        """
+    :param training_set: set of training data
+    :param pred_column: index of column to predict from training dataset
+    :param n_past: number of past days we want to use to predict the future
+    :param n_future: number of days we want to predict into the future
+    :return: (X_train, Y_train):
+        X_train dataset, 3D, with size: (training_set.size - n_past - n_future + 1, n_past, # of features)
+        y_train dataset, 2D, with size: (training_set.size - n_past - n_future + 1, # of outcomes)
+    """
     X_train = []
     y_train = []
 
@@ -135,32 +139,25 @@ def create_training_sets(training_set: np.array, pred_column: int, n_past: int, 
     return np.array(X_train), np.array(y_train)
 
 
-def create_prediction_input(training_set: np.array, n_past: int, n_future: int):
-    """Formats training datasets for modeling, currently only set up for 1 outcome.
-        X_train keeps outcome column for use as a feature
+def create_prediction_input(training_set: np.ndarray, n_past: int) -> np.ndarray:
+    """
+    Formats training datasets for modeling, currently only set up for 1 outcome.
+    X_train keeps outcome column for use as a feature
 
-        Parameters
-        ----------
-        training_set: nparray
-            set of training data
-        n_past: int
-            Number of past days we want to use to predict the future
-        n_future: int
-            Number of days we want to predict into the future
-
-        Returns
-        -------
-        X_train: nparray
-            X_train dataset, 3D, with size: (training_set.size - n_past - n_future + 1, n_past, # of features)
-        """
-    input = [training_set[-n_past:, :]]
-    return np.array(input)
+    :param training_set: fit/transformed scaled training data
+    :param n_past: Number of past days we want to use to predict the future
+    :return:
+    """
+    pred_input = [training_set[-n_past:, :]]
+    return np.array(pred_input)
 
 
 # ---> Special function: convert <datetime.date> to <Timestamp>
 def datetime_to_timestamp(x):
     """
-        x : a given datetime value (datetime.date)
+
+    :param x:  a given datetime value (datetime.date)
+    :return:
     """
     return dt.datetime.strptime(x.strftime('%Y%m%d'), '%Y%m%d')
 

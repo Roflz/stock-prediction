@@ -118,7 +118,7 @@ def main_titty(ticker: str, value_to_predict: str):
     # Print stats
 
     # Plot
-    gd.plot_data(db.dataset_train, predictions_train, predictions_future, db.features, db.date_list)
+    gd.plot_data(db.training_df, predictions_train, predictions_future, db.features, db.date_list)
     gd.plt.show()
 
     # plot training loss against validation loss

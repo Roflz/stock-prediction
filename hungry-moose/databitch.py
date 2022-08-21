@@ -1,25 +1,36 @@
 import os
-from typing import Dict, Any
-
 import numpy as np
 import pandas as pd
-import requests
+from pandas import DataFrame
 
 from utils import data_utils as utils
+from utils.data_utils import create_training_sets, create_prediction_input
+from typing import Dict
 
 
 class DataBitch:
 
-    def __init__(self, ticker, years, scaler, features, value_to_predict, n_future, n_past):
+    def __init__(self, ticker: str, years: int, scaler: str, features: list, value_to_predict: str,
+                 n_future: int, n_past: int):
+        """
+        Data manager for modeltits.
+        Cleans, scales, and organizes bitch data.
+
+        :param ticker: string stock ticker e.g., "TSLA"
+        :param years: years of stock history to get
+        :param scaler: string scaler to scale dataset e.g., "MinMax"
+        :param features: list of string column names to classify against e.g. Open, Close, High, Low, Volume
+        :param value_to_predict: string selected from list features
+        :param n_future: Number of days we want to predict into the future
+        :param n_past: Number of past days we want to use to predict the future
+        """
         # Parameters needed for predicting
-        self.ticker = ticker                        # stock ticker
-        self.years = years                          # years of stock history to get
-        self.features = features                    # column names e.g. Open, Close, High, Low, Volume
-        self.value_to_predict = value_to_predict    # selected from features
-        self.n_future = n_future                    # Number of days we want to predict into the future
-        self.n_past = n_past                        # Number of past days we want to use to predict the future
-        self.predictions_train = []
-        self.predictions_future = []
+        self.ticker = ticker
+        self.years = years
+        self.features = features
+        self.value_to_predict = value_to_predict
+        self.n_future = n_future
+        self.n_past = n_past
 
     ### This is an example
     ## protected class attribute
@@ -34,55 +45,67 @@ class DataBitch:
     # def my_variable(self):
     #     return self.__my_variable
 
-
         # Initialize data
-        self.dataset = utils.get_data(ticker, years)
-        self.date_list = utils.extract_dates(self.dataset)  # list of dates from dataset to use for visualization
-        self.date_list_future = utils.make_future_datelist(self.date_list, n_future)
-        self.dataset_train = utils.pick_features(self.dataset, features)  # dataset for training
-        self.training_set = np.array(self.dataset_train)
-        self.sc = self.sc_predict = utils.make_scaler(scaler)
-        self.training_set_scaled = self.sc_fit_transform(self.training_set)
+        df: DataFrame = utils.get_data(ticker, years)                           # Full dataset from CSV
+        self.training_df: DataFrame = utils.pick_features(df, features)         # Cleaned dataset with desired features
+        self.training_set: np.ndarray = np.array(self.training_df)              # Cleaned dataset (numpy array)
 
-        self.training_data = {}
-        for feature in features:
-            pred_column = self.dataset_train.columns.get_loc(feature)
-            self.training_data[f"X_train_{feature}"], self.training_data[f"y_train_{feature}"] = \
-                self.__create_training_sets(pred_column)
-        self.prediction_input = utils.create_prediction_input(self.training_set_scaled, self.n_past, self.n_future)
+        # Scale data
+        self.scaler = utils.make_scaler(scaler)
+        self.training_set_scaled = self.scaler.fit_transform(self.training_set)
+        self.training_data: Dict[str, np.ndarray] = self.__create_training_sets(features)   # Scaled data by feature
 
-        # run any setup methods
+        # Make date lists for visualizations
+        self.date_list: list = utils.extract_dates(df)
+        self.date_list_future: list = utils.make_future_datelist(self.date_list, n_future)
+
+        # Setup prediction parameters
+        self.prediction_input: np.ndarray = create_prediction_input(self.training_set, n_past)
+        self.predictions_train: np.ndarray = []                 # sc_transform_predictions
+        self.predictions_future: np.ndarray = []                # sc_transform_predictions
         self.__fit_prediction_scaler()
 
-    def __create_training_sets(self, pred_column: int) -> np.ndarray:
+    def __create_training_sets(self, features: list) -> Dict[str, np.ndarray]:
         """
+        Uses the features list to create
 
-        :param pred_column: column where value to predict is in the DataFrame
-        :type pred_column: int
-        :return: X_train, y_train
-        :rtype: ndarray, ndarray
+        :param features: list of features (column header names) in csv
+        :return: dictionary of training data
         """
-        return utils.create_training_sets(self.training_set_scaled, pred_column, self.n_past, self.n_future)
+        training_data = {}
+        for feature in features:
+            pred_column = self.training_df.columns.get_loc(feature)
+            X_train, Y_train = create_training_sets(self.training_set_scaled, pred_column, self.n_past, self.n_future)
+            training_data[f"X_train_{feature}"] = X_train
+            training_data[f"y_train_{feature}"] = Y_train
+        return training_data
 
     def __fit_prediction_scaler(self):
-        pred_column = self.dataset_train.columns.get_loc(self.value_to_predict)
-        self.sc_predict.fit_transform(self.training_set[:, pred_column: pred_column + 1])
+        pred_column = self.training_df.columns.get_loc(self.value_to_predict)
+        self.scaler.fit_transform(self.training_set[:, pred_column: pred_column + 1])
 
-    def sc_transform_predictions(self, inverse=False):
+    def sc_transform_predictions(self, inverse: bool = False):
         if inverse:
-            self.predictions_train = self.sc_predict.inverse_transform(self.predictions_train)
-            self.predictions_future = self.sc_predict.inverse_transform(self.predictions_future)
+            self.predictions_train = self.scaler.inverse_transform(self.predictions_train)
+            self.predictions_future = self.scaler.inverse_transform(self.predictions_future)
         else:
-            self.predictions_train = self.sc_predict.transform(self.predictions_train)
+            self.predictions_train = self.scaler.transform(self.predictions_train)
 
-    def sc_fit_transform(self, data):
-        return self.sc.fit_transform(data)
+    def format_for_plot(self, datapoints: np.ndarray, columns: list, date_list: list, train=False, future=False):
+        """
 
-    def format_for_plot(self, datapoints, columns: list, date_list: list, train=False, future=False):
+        :param datapoints:
+        :param columns:
+        :param date_list:
+        :param train:
+        :param future:
+        :return:
+        """
         if train:
             predictions_train = pd.DataFrame(datapoints, columns=columns).set_index(pd.Series(date_list[self.n_past:]))
             # Convert <datetime.date> to <Timestamp> for training predictions
-            predictions_train.index = predictions_train.index.to_series().apply(utils.datetime_to_timestamp)
+            # TODO: commented out for now - may need later when we start predicting on minute/hour basis
+            # predictions_train.index = predictions_train.index.to_series().apply(utils.datetime_to_timestamp)
             return predictions_train
         elif future:
             return pd.DataFrame(datapoints, columns=columns).set_index(pd.Series(date_list))
