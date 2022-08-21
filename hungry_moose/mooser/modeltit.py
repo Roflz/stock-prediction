@@ -2,13 +2,13 @@ import keras
 import numpy as np
 from utils import data_utils as utils
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
-import models
+from mooser import models
 
 
 class ModelTit:
     es = EarlyStopping(monitor='val_loss', min_delta=1e-10, patience=5, verbose=1)
     rlr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10, verbose=1)
-    mcp = ModelCheckpoint(filepath='weights.h5', monitor='val_loss', verbose=1, save_best_only=True,
+    mcp = ModelCheckpoint(filepath='../weights.h5', monitor='val_loss', verbose=1, save_best_only=True,
                           save_weights_only=True)
     my_callbacks = {"es": es, "rlr": rlr, "mcp": mcp}
     # Notes:

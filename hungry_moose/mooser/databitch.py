@@ -4,7 +4,6 @@ import pandas as pd
 from pandas import DataFrame
 
 from utils import data_utils as utils
-from utils.data_utils import create_training_sets, create_prediction_input
 from typing import Dict
 
 
@@ -60,7 +59,7 @@ class DataBitch:
         self.date_list_future: list = utils.make_future_datelist(self.date_list, n_future)
 
         # Setup prediction parameters
-        self.prediction_input: np.ndarray = create_prediction_input(self.training_set, n_past)
+        self.prediction_input: np.ndarray = utils.create_prediction_input(self.training_set, n_past)
         self.predictions_train: np.ndarray = []                 # sc_transform_predictions
         self.predictions_future: np.ndarray = []                # sc_transform_predictions
         self.__fit_prediction_scaler()
@@ -74,8 +73,8 @@ class DataBitch:
         """
         training_data = {}
         for feature in features:
-            pred_column = self.training_df.columns.get_loc(feature)
-            X_train, Y_train = create_training_sets(self.training_set_scaled, pred_column, self.n_past, self.n_future)
+            pred_val = self.training_df.columns.get_loc(feature)
+            X_train, Y_train = utils.create_training_sets(self.training_set_scaled, pred_val, self.n_past, self.n_future)
             training_data[f"X_train_{feature}"] = X_train
             training_data[f"y_train_{feature}"] = Y_train
         return training_data

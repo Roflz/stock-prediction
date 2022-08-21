@@ -1,6 +1,7 @@
 import argparse
 import numpy as np
 import pandas as pd
+import os
 
 import graphdick as gd
 import pygsheets
@@ -11,14 +12,19 @@ from matplotlib import pyplot as plt
 from utils import data_utils as utils
 
 
+# For file handling and directory organization
+hungry_moose_dir = os.path.dirname(os.path.dirname(__file__))
+assert os.path.basename(hungry_moose_dir) == 'hungry_moose'
+
+
 def main_titty(ticker: str, value_to_predict: str):
-    '''
+    """
     MAIN TITTY
 
     :param value_to_predict: str for feature to predict
     :param ticker: str ticker name
     :return:
-    '''
+    """
 
     # Parameters
     years = 10
@@ -90,7 +96,8 @@ def main_titty(ticker: str, value_to_predict: str):
 
     # Output Predictions
     # authorization
-    gc = pygsheets.authorize(service_file='gs_creds.json')
+    credz = os.path.join(hungry_moose_dir, 'credz', 'gs_creds.json')
+    gc = pygsheets.authorize(service_file=credz)
 
     # Create empty dataframe
     df = pd.DataFrame()
@@ -130,7 +137,6 @@ def main_titty(ticker: str, value_to_predict: str):
 
 
 if __name__ == '__main__':
-
     parser = argparse.ArgumentParser(description='Put your stock ticker bitch')
 
     parser.add_argument(

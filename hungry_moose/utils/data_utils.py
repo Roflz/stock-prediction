@@ -8,10 +8,10 @@ import os
 import requests
 import sklearn.preprocessing as skpp
 from dateutil.relativedelta import relativedelta
-from keras.saving.save import load_model
 from pandas import DataFrame
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from typing import Tuple
+from mooser.databitch import DataBitch
 
 
 # For file handling and directory organization
