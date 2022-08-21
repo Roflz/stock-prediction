@@ -21,6 +21,20 @@ class DataBitch:
         self.predictions_train = []
         self.predictions_future = []
 
+    ### This is an example
+    ## protected class attribute
+    #     self.__my_variable = None
+    #
+    # @my_variable.setter
+    # def my_variable(self, value):
+    #     self.__my_variable = value
+    #
+    ## (getter)
+    # @property
+    # def my_variable(self):
+    #     return self.__my_variable
+
+
         # Initialize data
         self.dataset = utils.get_data(ticker, years)
         self.date_list = utils.extract_dates(self.dataset)  # list of dates from dataset to use for visualization
