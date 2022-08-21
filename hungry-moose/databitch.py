@@ -1,7 +1,9 @@
+import os
 from typing import Dict, Any
 
 import numpy as np
 import pandas as pd
+import requests
 
 from utils import data_utils as utils
 
@@ -9,19 +11,18 @@ from utils import data_utils as utils
 class DataBitch:
 
     def __init__(self, ticker, years, scaler, features, value_to_predict, n_future, n_past):
-        # parameters needed for predicting
-        self.ticker = ticker  # stock ticker
-        self.years = years  # years of stock history to get
-        self.features = features
-        self.value_to_predict = value_to_predict
-        self.n_future = n_future  # Number of days we want to predict into the future
-        self.n_past = n_past  # Number of past days we want to use to predict the future
+        # Parameters needed for predicting
+        self.ticker = ticker                        # stock ticker
+        self.years = years                          # years of stock history to get
+        self.features = features                    # column names e.g. Open, Close, High, Low, Volume
+        self.value_to_predict = value_to_predict    # selected from features
+        self.n_future = n_future                    # Number of days we want to predict into the future
+        self.n_past = n_past                        # Number of past days we want to use to predict the future
         self.predictions_train = []
         self.predictions_future = []
 
-        # initialize data
-        # self.dataset = utils.get_data(ticker, years)  # dataset to be used for predicting
-        self.dataset = utils.get_data_from_csv("SBUX.csv")
+        # Initialize data
+        self.dataset = utils.get_data(ticker, years)
         self.date_list = utils.extract_dates(self.dataset)  # list of dates from dataset to use for visualization
         self.date_list_future = utils.make_future_datelist(self.date_list, n_future)
         self.dataset_train = utils.pick_features(self.dataset, features)  # dataset for training

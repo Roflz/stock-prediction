@@ -1,5 +1,4 @@
 import keras
-import numpy
 import numpy as np
 from utils import data_utils as utils
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
@@ -73,31 +72,32 @@ class ModelTit:
         """
         return self.model.predict(input)
 
-    def predict_by_day(training_set: np.ndarray, n_past: int, n_future: int, features: list[str], value_to_predict: str,
-                       model_dict: dict[str, modeltit.ModelTit]) -> np.ndarray:
-        """
 
-        :param n_past: number of past days using to predict
-        :type n_past: int
-        :param n_future: number of future days to predict
-        :type n_future: int
-        :param features: list of features being used in model
-        :type features: list[str]
-        :param value_to_predict: value to predict
-        :type value_to_predict: str
-        :param model_dict: dictionary containing models
-        :type model_dict: dict[str, ModelTit]
-        :return: predicted values
-        :rtype: ndarray
-        """
-        predictions = []
-        pred_input = utils.create_prediction_input(training_set, n_past, n_future)
-        for i in range(0, n_future):
-            pred_next_day = []
-            for feature in features:
-                pred_next_day = np.append(pred_next_day, model_dict[feature].predict(pred_input[-1:]))
-                if feature == value_to_predict:
-                    predictions = np.append(predictions, model_dict[feature].predict(pred_input[-1:]))
-            pred_next_day = np.append(pred_input[i][-n_past + 1:], pred_next_day.reshape(1, -1), axis=0)
-            pred_input = np.append(pred_input, np.array([pred_next_day]), axis=0)
-        return predictions.reshape((-1, 1))
+def predict_by_day(training_set: np.ndarray, n_past: int, n_future: int, features: list[str], value_to_predict: str,
+                   model_dict: dict[str, ModelTit]) -> np.ndarray:
+
+    """
+    :param n_past: number of past days using to predict
+    :type n_past: int
+    :param n_future: number of future days to predict
+    :type n_future: int
+    :param features: list of features being used in model
+    :type features: list[str]
+    :param value_to_predict: value to predict
+    :type value_to_predict: str
+    :param model_dict: dictionary containing models
+    :type model_dict: dict[str, ModelTit]
+    :return: predicted values
+    :rtype: ndarray
+    """
+    predictions = []
+    pred_input = utils.create_prediction_input(training_set, n_past, n_future)
+    for i in range(0, n_future):
+        pred_next_day = []
+        for feature in features:
+            pred_next_day = np.append(pred_next_day, model_dict[feature].predict(pred_input[-1:]))
+            if feature == value_to_predict:
+                predictions = np.append(predictions, model_dict[feature].predict(pred_input[-1:]))
+        pred_next_day = np.append(pred_input[i][-n_past + 1:], pred_next_day.reshape(1, -1), axis=0)
+        pred_input = np.append(pred_input, np.array([pred_next_day]), axis=0)
+    return predictions.reshape((-1, 1))
