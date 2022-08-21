@@ -5,8 +5,11 @@ import pandas_datareader as pdr
 import numpy as np
 import datetime as dt
 import os
+
+import pygsheets
 import requests
 import sklearn.preprocessing as skpp
+
 from dateutil.relativedelta import relativedelta
 from pandas import DataFrame
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
@@ -182,6 +185,41 @@ def save_to_csv(df: DataFrame, save_name: str) -> None:
     """
     df.to_csv(f"{save_name}.csv", index=False)
 
+
+def output_to_sheet(ticker: str, value_to_predict: str, db) -> None:
+    """
+    Outputs prediction data to google sheet
+    :param ticker: ticker being predicted
+    :param value_to_predict: eg. 'Open', 'Close'
+    :param db: Preloaded DataBitch with predictions scaled back to normal
+    :return: None
+    """
+    # authorization
+    gc = pygsheets.authorize(service_file='gs_creds.json')
+
+    # Create empty dataframe
+    df = pd.DataFrame()
+
+    # open the google spreadsheet
+    sh = gc.open('stock_bitch')
+
+    # select or create the sheet
+    try:
+        wks = sh.worksheet_by_title(ticker)
+    except pygsheets.exceptions.WorksheetNotFound:
+        wks = sh.add_worksheet(ticker)
+        df[['Date', 'Prediction', 'Previous Day Price', 'Delta', 'Error', 'Buy/Sell']] = \
+            pd.DataFrame([['', '', '', '', '', '']], index=df.index)
+        wks.set_dataframe(df, (1, 1))
+
+    wks.append_table(
+        [db.date_list_future[0].strftime("%Y/%m/%d"),
+         str(db.predictions_future[0][0]),
+         str(db.dataset[value_to_predict][db.dataset.shape[0] - 1]),
+         str(db.predictions_future[0][0] - db.dataset[value_to_predict][db.dataset.shape[0] - 1]),
+         '',
+         '']
+    )
 
 # if __name__ == '__main__':
 #     stock_data_dir = os.path.join(os.getcwd(), 'stock_data')

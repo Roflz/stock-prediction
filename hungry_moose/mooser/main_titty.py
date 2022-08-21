@@ -80,6 +80,7 @@ def main_titty(ticker: str, value_to_predict: str):
             validation_split=0.2,
             batch_size=batch_size
         )
+    model_dict[value_to_predict].model.save(f"test_model_{ticker}.h5")
 
     # Perform predictions
     # Training data
@@ -95,28 +96,7 @@ def main_titty(ticker: str, value_to_predict: str):
     db.sc_transform_predictions(inverse=True)
 
     # Output Predictions
-    # authorization
-    credz = os.path.join(hungry_moose_dir, 'credz', 'gs_creds.json')
-    gc = pygsheets.authorize(service_file=credz)
-
-    # Create empty dataframe
-    df = pd.DataFrame()
-
-    # open the google spreadsheet (where 'PY to Gsheet Test' is the name of my sheet)
-    sh = gc.open('stock_bitch')
-
-    # select the first sheet
-    try:
-        wks = sh.worksheet_by_title(ticker)
-    except pygsheets.exceptions.WorksheetNotFound:
-        wks = sh.add_worksheet(ticker)
-        df['Date', 'Prediction', 'Previous Day Price', 'Delta', 'Error', 'Buy/Sell'] = ''
-        wks.set_dataframe(df, (1, 1))
-    # wks = sh[0]
-
-    # update the first sheet with df, starting at cell B2.
-    wks.set_dataframe(df, (1, 1))
-
+    utils.output_to_sheet(ticker, value_to_predict, db)
 
     # Format predictions for plotting
     predictions_train = db.format_for_plot(db.predictions_train, [value_to_predict], db.date_list, train=True)
