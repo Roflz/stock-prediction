@@ -3,5 +3,6 @@
 .idea/
 .ipynb_checkpoints/
 __pycache__
-*.h5
+hungry_moose/test_models
+hungry_moose/*.h5
 *.egg-info

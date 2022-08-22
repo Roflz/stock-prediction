@@ -4,17 +4,18 @@ from keras import models
 from utils import data_utils as utils
 
 
-ticker = 'TSLA'
+ticker = 'GOOG'
 
 # Load Things
-model = models.load_model('test_model_TSLA.h5')
-scaler = joblib.load('test_scaler_TSLA.h5')
-pred_scaler = joblib.load('test_pred_scaler_TSLA.h5')
+model = models.load_model(f'../models/{ticker}/model.h5')
+scaler = joblib.load(f'../models/{ticker}/scaler.h5')
+pred_scaler = joblib.load(f'../models/{ticker}/pred_scaler.h5')
 
 # Initialize data
 input_shape = model.input_shape
 n_past = input_shape[1]
 features = ['Open', 'Close', 'High', 'Low', 'Volume']
+value_to_predict = 'Open'
 df = utils.get_data_days(ticker, n_past)                           # Full dataset from CSV
 training_df = utils.pick_features(df, features)         # Cleaned dataset with desired features
 training_set = np.array(training_df)
@@ -36,6 +37,4 @@ prediction = model.predict(pred_input)
 # Rescale prediction
 prediction = pred_scaler.inverse_transform(prediction)
 
-utils.output_to_sheet(ticker, value_to_predict, db)
-
-print("hi")
+utils.output_to_sheet(ticker, value_to_predict, prediction, df)

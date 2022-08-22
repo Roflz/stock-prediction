@@ -6,10 +6,9 @@ from mooser import models
 
 
 class ModelTit:
-    es = EarlyStopping(monitor='val_loss', min_delta=1e-10, patience=5, verbose=1)
+    es = EarlyStopping(monitor='val_loss', min_delta=1e-10, patience=20, verbose=1)
     rlr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10, verbose=1)
-    mcp = ModelCheckpoint(filepath='../weights.h5', monitor='val_loss', verbose=1, save_best_only=True,
-                          save_weights_only=True)
+    mcp = ModelCheckpoint(filepath='../model.h5', monitor='val_loss', verbose=1, save_best_only=True)
     my_callbacks = {"es": es, "rlr": rlr, "mcp": mcp}
     # Notes:
     # EarlyStopping - Stop training when a monitored metric has stopped improving.
@@ -35,7 +34,7 @@ class ModelTit:
         self.model = models.get_model(model_ID, (X_train.shape[1], X_train.shape[2]))
         self.history = keras.Model.fit
 
-    def fit_model(self, epochs: int, validation_split: float, batch_size: int, callbacks=["rlr", "mcp"], save=""):
+    def fit_model(self, epochs: int, validation_split: float, batch_size: int, callbacks=["es", "rlr", "mcp"], save=""):
         """ Fits a model using the keras.Model.fit() method
 
         :param callbacks: list of callbacks to use in fitting

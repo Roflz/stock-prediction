@@ -1,8 +1,11 @@
 import argparse
+
+import datetime as dt
+import shutil
+
 import numpy as np
 import pandas as pd
 import os
-
 import graphdick as gd
 import pygsheets
 from databitch import DataBitch
@@ -11,7 +14,6 @@ from moose import feed_moose
 import joblib
 from matplotlib import pyplot as plt
 from utils import data_utils as utils
-
 
 # For file handling and directory organization
 hungry_moose_dir = os.path.dirname(os.path.dirname(__file__))
@@ -26,20 +28,20 @@ def main_titty(ticker: str, value_to_predict: str):
     :param ticker: str ticker name
     :return:
     """
+    # plead for food
+    feed_moose.moose_is_hungry()
 
-    # Parameters
+    # region Parameters
     years = 10
     n_past = 100
     n_future = 1
     features = ["Open", "Close", "High", "Low", "Volume"]
     model_dict = {}
-    epochs = 1
-    batch_size = 64
+    epochs = 150
+    batch_size = 32
+    # endregion
 
-    # plead for food
-    feed_moose.moose_is_hungry()
-
-    # Initialize data
+    # region Initialize Data
     db = DataBitch(
         ticker,
         years=years,
@@ -49,8 +51,10 @@ def main_titty(ticker: str, value_to_predict: str):
         n_future=n_future,
         n_past=n_past
     )
+    # endregion
 
-    # Make and fit models
+    # region Make and Fit Models
+    # For predicting multiple days
     if n_future > 1:
         for feature in features:
             # Create model classes
@@ -67,6 +71,7 @@ def main_titty(ticker: str, value_to_predict: str):
                 batch_size=batch_size,
                 save=f"{feature}_{ticker}"
             )
+    # For predicting 1 day
     else:
         # Create model classes
         model_dict[value_to_predict] = ModelTit(db.training_data[f"X_train_{value_to_predict}"],
@@ -81,43 +86,47 @@ def main_titty(ticker: str, value_to_predict: str):
             validation_split=0.2,
             batch_size=batch_size
         )
-    model_dict[value_to_predict].model.save(f"test_model_{ticker}.h5")
-    joblib.dump(db.scaler, f"test_scaler_{ticker}.h5")
-    joblib.dump(db.pred_scaler, f"test_pred_scaler_{ticker}.h5")
+    # endregion
 
+    # region Save Model
+    now = dt.datetime.now().strftime("%y%m%d%H%M%S")
+    os.mkdir(f"../test_models/{ticker}_{now}")
+    joblib.dump(db.scaler, f"../test_models/{ticker}_{now}/scaler.h5")
+    joblib.dump(db.pred_scaler, f"../test_models/{ticker}_{now}/pred_scaler.h5")
+    shutil.move("../model.h5", f"../test_models/{ticker}_{now}/model.h5")
 
-    # Perform predictions
+    # endregion
+
+    # region Perform predictions
     # Training data
     db.predictions_train = model_dict[value_to_predict].model.predict(db.training_data[f"X_train_{value_to_predict}"])
 
     # Future predictions
     if n_future > 1:
-        db.predictions_future = predict_by_day(db.training_set_scaled, n_past, n_future, features, value_to_predict, model_dict)
+        db.predictions_future = predict_by_day(db.training_set_scaled, n_past, n_future, features, value_to_predict,
+                                               model_dict)
     else:
         db.predictions_future = model_dict[value_to_predict].model.predict(db.prediction_input)
 
     # rescale data
     db.sc_transform_predictions(inverse=True)
+    # endregion
 
-    # Output Predictions
-    utils.output_to_sheet(ticker, value_to_predict, db)
-
+    # region Plot Shit
     # Format predictions for plotting
     predictions_train = db.format_for_plot(db.predictions_train, [value_to_predict], db.date_list, train=True)
-    predictions_future = db.format_for_plot(db.predictions_future, [db.value_to_predict], db.date_list_future, future=True)
-
-    # Print stats
+    predictions_future = db.format_for_plot(db.predictions_future, [db.value_to_predict], db.date_list_future,
+                                            future=True)
 
     # Plot
     gd.plot_data(db.training_df, predictions_train, predictions_future, db.features, db.date_list)
-    gd.plt.show()
+    gd.plt.savefig(f"../test_models/{ticker}_{now}/predictions")
 
     # plot training loss against validation loss
     gd.plot_loss(model_dict[value_to_predict].history.history['loss'],
                  model_dict[value_to_predict].history.history['val_loss'])
-    gd.plt.show()
-
-    print(model_dict[value_to_predict].model.summary())
+    gd.plt.savefig(f"../test_models/{ticker}_{now}/loss_vs_epochs")
+    # endregion
 
 
 if __name__ == '__main__':
@@ -144,8 +153,6 @@ if __name__ == '__main__':
     )
 
     args = parser.parse_args()
-    ticker_list = ['TSLA', 'NFLX', 'SBUX']
+    ticker_list = ['TWTR']
     for ticker in ticker_list:
         main_titty(ticker, args.value_to_predict)
-
-

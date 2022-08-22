@@ -86,8 +86,8 @@ def extract_dates(dataset: DataFrame) -> list:
     :return datelist: list of dates from dataset
     """
     dataset.reset_index(inplace=True)
-    # date_list = list(dataset['Date'])
-    # date_list = [dt.datetime.strptime(str(date.date()), '%Y-%m-%d').date() for date in date_list]
+    date_list = list(dataset['Date'])
+    date_list = [dt.datetime.strptime(str(date.date()), '%Y-%m-%d').date() for date in date_list]
     return list(dataset['Date'])
 
 
@@ -206,7 +206,7 @@ def save_to_csv(df: DataFrame, save_name: str) -> None:
     df.to_csv(f"{save_name}.csv", index=False)
 
 
-def output_to_sheet(ticker: str, value_to_predict: str, db) -> None:
+def output_to_sheet(ticker: str, value_to_predict: str, pred: int, df: DataFrame) -> None:
     """
     Outputs prediction data to google sheet
     :param ticker: ticker being predicted
@@ -215,10 +215,10 @@ def output_to_sheet(ticker: str, value_to_predict: str, db) -> None:
     :return: None
     """
     # authorization
-    gc = pygsheets.authorize(service_file='gs_creds.json')
+    gc = pygsheets.authorize(service_file=os.path.join(project_root, 'hungry_moose', 'credz', 'gs_creds.json'))
 
     # Create empty dataframe
-    df = pd.DataFrame()
+    df_ = pd.DataFrame()
 
     # open the google spreadsheet
     sh = gc.open('stock_bitch')
@@ -228,15 +228,20 @@ def output_to_sheet(ticker: str, value_to_predict: str, db) -> None:
         wks = sh.worksheet_by_title(ticker)
     except pygsheets.exceptions.WorksheetNotFound:
         wks = sh.add_worksheet(ticker)
-        df[['Date', 'Prediction', 'Previous Day Price', 'Delta', 'Error', 'Buy/Sell']] = \
+        df_[['Predicted Date', 'Prediction', 'Previous Day Price', 'Delta', 'Error', 'Buy/Sell']] = \
             pd.DataFrame([['', '', '', '', '', '']], index=df.index)
-        wks.set_dataframe(df, (1, 1))
+        wks.set_dataframe(df_, (1, 1))
+    # fuck = extract_dates(df)[-1:]
+    predicted_day = str(make_future_datelist(extract_dates(df), 1)[0])
+    prediction = str(pred[0][0])
+    previous_day_price = str(df[value_to_predict][df.shape[0] - 1])
+    delta = str(pred[0][0] - df[value_to_predict][df.shape[0] - 1])
 
     wks.append_table(
-        [db.date_list_future[0].strftime("%Y/%m/%d"),
-         str(db.predictions_future[0][0]),
-         str(db.df[value_to_predict][db.df.shape[0] - 1]),
-         str(db.predictions_future[0][0] - db.df[value_to_predict][db.df.shape[0] - 1]),
+        [predicted_day,
+         prediction,
+         previous_day_price,
+         delta,
          '',
          '']
     )
