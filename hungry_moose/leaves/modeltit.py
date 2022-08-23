@@ -2,7 +2,7 @@ import keras
 import numpy as np
 from utils import data_utils as utils
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
-from mooser import models
+from leaves import models
 
 
 class ModelTit:

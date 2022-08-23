@@ -1,25 +1,19 @@
 import argparse
-
 import datetime as dt
 import shutil
-
-import numpy as np
-import pandas as pd
 import os
 import graphdick as gd
-import pygsheets
 from databitch import DataBitch
 from modeltit import ModelTit, predict_by_day
 from moose import feed_moose
 import joblib
-from matplotlib import pyplot as plt
-from utils import data_utils as utils
 
 # For file handling and directory organization
 hungry_moose_dir = os.path.dirname(os.path.dirname(__file__))
 assert os.path.basename(hungry_moose_dir) == 'hungry_moose'
 
 
+# noinspection PyShadowingNames
 def main_titty(ticker: str, value_to_predict: str):
     """
     MAIN TITTY
@@ -121,11 +115,13 @@ def main_titty(ticker: str, value_to_predict: str):
     # Plot
     gd.plot_data(db.training_df, predictions_train, predictions_future, db.features, db.date_list)
     gd.plt.savefig(f"../test_models/{ticker}_{now}/predictions")
+    gd.plt.show()
 
     # plot training loss against validation loss
     gd.plot_loss(model_dict[value_to_predict].history.history['loss'],
                  model_dict[value_to_predict].history.history['val_loss'])
     gd.plt.savefig(f"../test_models/{ticker}_{now}/loss_vs_epochs")
+    gd.plt.show()
     # endregion
 
 
