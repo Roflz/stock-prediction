@@ -2,10 +2,12 @@ import argparse
 import datetime as dt
 import shutil
 import os
+import time
+
 import graphdick as gd
 from databitch import DataBitch
 from modeltit import ModelTit, predict_by_day
-from moose import feed_moose
+from moose.feed_moose import Moose
 import joblib
 
 # For file handling and directory organization
@@ -14,7 +16,7 @@ assert os.path.basename(hungry_moose_dir) == 'hungry_moose'
 
 
 # noinspection PyShadowingNames
-def main_titty(ticker: str, value_to_predict: str):
+def titty_train(ticker: str, value_to_predict: str):
     """
     MAIN TITTY
 
@@ -22,8 +24,6 @@ def main_titty(ticker: str, value_to_predict: str):
     :param ticker: str ticker name
     :return:
     """
-    # plead for food
-    feed_moose.moose_is_hungry()
 
     # region Parameters
     years = 10
@@ -32,7 +32,7 @@ def main_titty(ticker: str, value_to_predict: str):
     features = ["Open", "Close", "High", "Low", "Volume"]
     model_dict = {}
     epochs = 150
-    batch_size = 32
+    batch_size = 64
     # endregion
 
     # region Initialize Data
@@ -85,10 +85,20 @@ def main_titty(ticker: str, value_to_predict: str):
     # region Save Model
     now = dt.datetime.now().strftime("%y%m%d%H%M%S")
     os.mkdir(f"../test_models/{ticker}_{now}")
-    joblib.dump(db.scaler, f"../test_models/{ticker}_{now}/scaler.h5")
-    joblib.dump(db.pred_scaler, f"../test_models/{ticker}_{now}/pred_scaler.h5")
-    shutil.move("../model.h5", f"../test_models/{ticker}_{now}/model.h5")
 
+    time_to_wait = 10
+    time_counter = 0
+    while not os.path.exists("../model.h5"):
+        time.sleep(1)
+        time_counter += 1
+        if time_counter > time_to_wait: break
+
+    try:
+        shutil.move("../model.h5", f"../test_models/{ticker}_{now}/model.h5")
+        joblib.dump(db.scaler, f"../test_models/{ticker}_{now}/scaler.h5")
+        joblib.dump(db.pred_scaler, f"../test_models/{ticker}_{now}/pred_scaler.h5")
+    except FileNotFoundError:
+        print(f'model not found for {ticker}')
     # endregion
 
     # region Perform predictions
@@ -115,13 +125,13 @@ def main_titty(ticker: str, value_to_predict: str):
     # Plot
     gd.plot_data(db.training_df, predictions_train, predictions_future, db.features, db.date_list)
     gd.plt.savefig(f"../test_models/{ticker}_{now}/predictions")
-    gd.plt.show()
+    # gd.plt.show()
 
     # plot training loss against validation loss
     gd.plot_loss(model_dict[value_to_predict].history.history['loss'],
                  model_dict[value_to_predict].history.history['val_loss'])
     gd.plt.savefig(f"../test_models/{ticker}_{now}/loss_vs_epochs")
-    gd.plt.show()
+    # gd.plt.show()
     # endregion
 
 
@@ -149,6 +159,6 @@ if __name__ == '__main__':
     )
 
     args = parser.parse_args()
-    ticker_list = ['TWTR']
+    ticker_list = ['UNH', 'TSM', 'V', 'NVDA', 'CSCO', 'KO', 'PEP', 'HD', 'LLY', 'JNJ']
     for ticker in ticker_list:
-        main_titty(ticker, args.value_to_predict)
+        titty_train(ticker, args.value_to_predict)
