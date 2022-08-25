@@ -159,6 +159,6 @@ if __name__ == '__main__':
     )
 
     args = parser.parse_args()
-    ticker_list = ['UNH', 'TSM', 'V', 'NVDA', 'CSCO', 'KO', 'PEP', 'HD', 'LLY', 'JNJ']
+    ticker_list = ['DIS']
     for ticker in ticker_list:
         titty_train(ticker, args.value_to_predict)
