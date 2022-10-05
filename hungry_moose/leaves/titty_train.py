@@ -27,12 +27,12 @@ def titty_train(ticker: str, value_to_predict: str):
 
     # region Parameters
     years = 10
-    n_past = 100
+    n_past = 300
     n_future = 1
     features = ["Open", "Close", "High", "Low", "Volume"]
     model_dict = {}
-    epochs = 150
-    batch_size = 64
+    epochs = 200
+    batch_size = 32
     # endregion
 
     # region Initialize Data
@@ -125,13 +125,13 @@ def titty_train(ticker: str, value_to_predict: str):
     # Plot
     gd.plot_data(db.training_df, predictions_train, predictions_future, db.features, db.date_list)
     gd.plt.savefig(f"../test_models/{ticker}_{now}/predictions")
-    # gd.plt.show()
+    gd.plt.show()
 
     # plot training loss against validation loss
     gd.plot_loss(model_dict[value_to_predict].history.history['loss'],
                  model_dict[value_to_predict].history.history['val_loss'])
     gd.plt.savefig(f"../test_models/{ticker}_{now}/loss_vs_epochs")
-    # gd.plt.show()
+    gd.plt.show()
     # endregion
 
 
@@ -159,6 +159,6 @@ if __name__ == '__main__':
     )
 
     args = parser.parse_args()
-    ticker_list = ['DIS']
+    ticker_list = ['NVDA']
     for ticker in ticker_list:
         titty_train(ticker, args.value_to_predict)

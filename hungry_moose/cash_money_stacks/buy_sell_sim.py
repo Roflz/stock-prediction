@@ -54,11 +54,21 @@ for i in range(n_past, len(data['AMZN'].training_set)):
     # But we do need some starting points besides my dumbass shit...
     # .....
     # Analyze buy/sell/hold
-    # We're going to create a dictionary here for each stock with the data we have so far
+    # We're going to create a dictionary of dictionaries here for each stock with the data we have so far
+    # And lets put in some empty entries for things that will probably be useful
     # I know this could be done better. I give no fucks right now, this is good
     making_moves = {}
     for ticker in tickers:
-        making_moves[ticker] = [prices[ticker], predictions[ticker]]
+        making_moves[ticker] = {'price': prices[ticker],
+                                'prediction': predictions[ticker],
+                                'amnt_to_buy': 0,
+                                'prediction_ratio': prices[ticker] / predictions[ticker],
+                                'last_5_prices': data[ticker].df['Open'][i-5:i].values}
+    # I'm gonna grab the amnt of cash we have from our dollabillz cash stack and just make the logic for buy/sell
+    # out here for now. & Ill grab some other info
+    cash = dolla_billz.cash
+    portfolio = dolla_billz.portfolio
+
     # what do we care about when we're buying stocks...
     # maybe these things...
     # ratio of current price : predicted price
@@ -72,10 +82,6 @@ for i in range(n_past, len(data['AMZN'].training_set)):
     # Hold:
     # Hold is sort of the in between, where we don't know
     # but keep in mind... We are essentially day trading, so we should likely not be holding for long
-
-
-
-
     # .....
     # if predicted price is higher than current
     if prediction > current_price:

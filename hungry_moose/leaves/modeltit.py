@@ -6,7 +6,7 @@ from leaves import models
 
 
 class ModelTit:
-    es = EarlyStopping(monitor='val_loss', min_delta=1e-10, patience=20, verbose=1)
+    es = EarlyStopping(monitor='val_loss', min_delta=1e-10, patience=30, verbose=1)
     rlr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10, verbose=1)
     mcp = ModelCheckpoint(filepath='../model.h5', monitor='val_loss', verbose=1, save_best_only=True)
     my_callbacks = {"es": es, "rlr": rlr, "mcp": mcp}
