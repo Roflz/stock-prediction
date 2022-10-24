@@ -5,7 +5,7 @@ from keras import models
 from leaves.databitch import DataBitch
 
 # Parameters
-starting_cash = 10000
+starting_cash = 2000
 tickers = ['AMZN', 'TWTR', 'GOOG', 'UNH', 'META', 'PEP', 'DIS']
 features = ["Open", "Close", "High", "Low", "Volume"]
 n_future = 1
@@ -31,6 +31,10 @@ for i in range(n_past, len(data['AMZN'].training_set)):
     # based off of ALL of the data that we have
     predictions = {}
     prices = {}
+    making_moves = {}
+    cash = dolla_billz.cash
+    portfolio = dolla_billz.portfolio
+
     for ticker in tickers:
         pred_input = np.array([data[ticker].training_set_scaled[i - n_past:i, :]])
         prediction = model_dict[ticker].predict(pred_input, verbose=0)
@@ -38,6 +42,23 @@ for i in range(n_past, len(data['AMZN'].training_set)):
         current_price = data[ticker].df['Open'][i-1]
         predictions[ticker] = prediction
         prices[ticker] = current_price
+
+        making_moves[ticker] = {'price': prices[ticker],
+                                'prediction': predictions[ticker],
+                                'amnt_to_buy': 0,
+                                'prediction_ratio': predictions[ticker] / prices[ticker],
+                                'last_5_prices': data[ticker].df['Open'][i-5:i].values}
+
+    for ticker in tickers:
+        prediction_ratio = making_moves[ticker]['prediction_ratio']
+        price = making_moves[ticker]['price']
+        if prediction_ratio > 1:
+            # buy
+            dolla_billz.buy(ticker, prediction_ratio, price)
+        # if predicted price is lower than current
+        elif prediction_ratio < 1:
+            # Sell
+            dolla_billz.sell(ticker, price)
     # Now we have dicts of our predicted prices and the current prices
     # Analyze the data from our predictions
     # ........
@@ -57,17 +78,10 @@ for i in range(n_past, len(data['AMZN'].training_set)):
     # We're going to create a dictionary of dictionaries here for each stock with the data we have so far
     # And lets put in some empty entries for things that will probably be useful
     # I know this could be done better. I give no fucks right now, this is good
-    making_moves = {}
-    for ticker in tickers:
-        making_moves[ticker] = {'price': prices[ticker],
-                                'prediction': predictions[ticker],
-                                'amnt_to_buy': 0,
-                                'prediction_ratio': prices[ticker] / predictions[ticker],
-                                'last_5_prices': data[ticker].df['Open'][i-5:i].values}
+
     # I'm gonna grab the amnt of cash we have from our dollabillz cash stack and just make the logic for buy/sell
     # out here for now. & Ill grab some other info
-    cash = dolla_billz.cash
-    portfolio = dolla_billz.portfolio
+
 
     # what do we care about when we're buying stocks...
     # maybe these things...
@@ -84,13 +98,7 @@ for i in range(n_past, len(data['AMZN'].training_set)):
     # but keep in mind... We are essentially day trading, so we should likely not be holding for long
     # .....
     # if predicted price is higher than current
-    if prediction > current_price:
-        # buy
-        dolla_billz.buy(ticker, current_price, prediction)
-    # if predicted price is lower than current
-    elif prediction < current_price:
-        # Sell
-        dolla_billz.sell(ticker, current_price)
+
     # Print shit
     print(f"Cash moneyz: ${dolla_billz.cash}")
     print(f"Portfolio value: ${dolla_billz.portfolio_value}")

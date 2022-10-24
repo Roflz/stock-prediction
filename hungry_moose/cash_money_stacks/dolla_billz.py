@@ -22,15 +22,14 @@ class DollaBillz:
         self.portfolio_value = value
         return value
 
-    def buy(self, ticker, price, prediction):
-        price_ratio = prediction / price
+    def buy(self, ticker, prediction_ratio, price):
         price_cash_ratio = price / self.cash
         if self.cash > price:
-            if price_ratio > 1.10:
+            if prediction_ratio > 1.10:
                 amnt_to_buy = self.cash // price
                 self.cash -= price * amnt_to_buy
                 self.portfolio[ticker] += amnt_to_buy
-            elif 1.10 >= price_ratio >= 1.05:
+            elif 1.10 >= prediction_ratio >= 1.05:
                 amnt_to_buy = ((self.cash / price) // 2) + 1
                 self.cash -= price * amnt_to_buy
                 self.portfolio[ticker] += amnt_to_buy
