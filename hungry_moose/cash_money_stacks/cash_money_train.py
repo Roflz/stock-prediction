@@ -49,62 +49,249 @@
 #   but instead must discover which actions yield the most reward by trying them.
 
 
-
 # region Parameters
-years = 10
-n_past = 300
-n_future = 1
-features = ["Open", "Close", "High", "Low", "Volume"]
-model_dict = {}
-epochs = 200
-batch_size = 32
+# years = 10
+# n_past = 300
+# n_future = 1
+# features = ["Open", "Close", "High", "Low", "Volume"]
+# model_dict = {}
+# epochs = 200
+# batch_size = 32
 # endregion
 
+# import gym
+# import random
+#
+# env = gym.make('CartPole-v1')
+# states = env.observation_space.shape
+# actions = env.action_space.n
+#
+# # episodes = 10
+# # for episode in range(1, episodes + 1):
+# #     state = env.reset()
+# #     done = False
+# #     score = 0
+# #
+# #     while not done:
+# #         env.render()
+# #         action = random.choice([0, 1])
+# #         n_state, reward, done, trunc, info = env.step(action)
+# #         score += reward
+# #     print('Episode:{} Score:{}'.format(episode, score))
+#
+# import numpy as np
+# from keras import Sequential
+# from keras.layers import Dense, Flatten
+# from keras.optimizers import Adam
+#
+#
+# def build_model(states, actions):
+#     model = Sequential()
+#     model.add(Flatten(input_shape=states))
+#     model.add(Dense(24, activation='relu'))
+#     model.add(Dense(24, activation='relu'))
+#     model.add(Dense(actions, activation='linear'))
+#     return model
+#
+#
+# # model = build_model(states, actions)
+# # model.summary()
+#
+# from rl.agents import DQNAgent
+# from rl.policy import BoltzmannQPolicy
+# from rl.memory import SequentialMemory
+#
+#
+# def build_agent(model, actions):
+#     policy = BoltzmannQPolicy()
+#     memory = SequentialMemory(limit=50000, window_length=1)
+#     dqn = DQNAgent(model=model, memory=memory, policy=policy,
+#                    nb_actions=actions, nb_steps_warmup=10, target_model_update=1e-2)
+#     return dqn
+#
+#
+# dqn = build_agent(build_model(states, actions), actions)
+# dqn.compile(Adam(lr=1e-3), metrics=['mae'])
+# dqn.fit(env, nb_steps=50000, visualize=False, verbose=1)
+#
+# import gym
+# from gym import Env
+# import numpy as np
+# from gym.spaces import Discrete, Box
+# import random
+#
+#
+# # create a custom class
+# class ShowerEnv:
+#     def __init__(self):
+#         # Actions we can take, possible value 0,1,2 (Buy, Sell, Hold)
+#         self.action_space = Discrete(3)
+#         # This holds our current value. i.e. the current cash moneys we have, and/or current value of stock(s) we have
+#         # Low/High gives us the minimum and maximum that our value can be
+#         self.observation_space = Box(low=np.float32(np.array([0])), high=np.float32(np.array([100])),
+#                                      dtype=np.float32)  # numbers between [0 100] continuous
+#         # This is the starting value. Here, will be between [38-3.38+3]
+#         self.state = 38 + random.randint(-3, 3)
+#         # This is the length we are running for. Probably will be the amount of days worth of data that we are
+#         # training this with
+#         self.shower_length = 60  # duration of  temperature
+#
+#     def step(self, shower_action):
+#         # if action =0, then decrease temperature,
+#         # if action=1, leave unchanged
+#         # if action=2, increase
+#         self.state += shower_action - 1
+#         # Reduce shower length by 1 second
+#         self.shower_length -= 1
+#
+#         # Calculate Reward
+#         if 37 <= self.state <= 39:
+#             reward = 1
+#         else:
+#             reward = -1
+#         if self.shower_length <= 0:
+#             done = True
+#         else:
+#             done = False
+#
+#         # For us:
+#         # if we make money
+#         # reward = 1
+#         # else
+#         # reward = -1
+#
+#         info = ()
+#         info = {}
+#         return self.state, reward, done, info
+#
+#     def render(self):
+#         pass
+#
+#     def reset(self):
+#         # Reset temp
+#         self.state = 38 + random.randint(-3, 3)
+#         # Reset shower time
+#         self.shower_length = 60
+#         return self.state
+#
+#
+# env = ShowerEnv()
+# episodes = 10
+# for episode in range(1, episodes + 1):
+#     state = env.reset()
+#     done = False
+#     score = 0
+#     while not done:
+#         action = env.action_space.sample()
+#         n_state, reward, done, info = env.step(action)
+#         score += reward
+#     print('Episode:{} Score:{}'.format(episode, score))
+#
+# import tensorflow as tf
+# from keras.models import Sequential
+# from keras.layers import Dense, Flatten
+# from keras.optimizers import Adam
+#
+# env = ShowerEnv()
+# states = env.observation_space.shape
+# actions = env.action_space.n
+#
+#
+# def build_model(states, actions):
+#     model = Sequential()
+#     model.add(Dense(units=24, activation='relu', input_shape=states))
+#     model.add(Dense(units=24, activation='relu'))
+#     model.add(Dense(actions, activation='linear'))
+#     return model
+#
+#
+# # model =build_model(states,actions)
+# # model.compile(optimizer=Adam(learning_rate=1e-3), metrics=['mae'])
+# # del model
+# # print(model.summary())
+# from rl.agents import DQNAgent
+# from rl.policy import BoltzmannQPolicy
+# from rl.memory import SequentialMemory
+#
+#
+# def build_agent(model, actions):
+#     policy = BoltzmannQPolicy()
+#     memory = SequentialMemory(limit=50000, window_length=1)
+#     dqn = DQNAgent(model=model, memory=memory, policy=policy, nb_actions=actions, nb_steps_warmup=10,
+#                    target_model_update=1e-2)
+#     return dqn
+#
+#
+# dqn = build_agent(build_model(states, actions), actions)
+# dqn.compile(optimizer=Adam(learning_rate=1e-3), metrics=['mae'])
+# dqn.fit(env, nb_steps=50000, visualize=False, verbose=1)
+#
+# scores = dqn.test(env, nb_episodes=100, visualize=False)
+# print(np.mean(scores.history['episode_reward']))
+
+# _ = dqn.test(env, nb_episodes=15, visualize=True)
 
 
-# region Initialize Data
-db = DataBitch(
-    ticker,
-    years=years,
-    scaler="MinMax",
-    features=features,
-    value_to_predict=value_to_predict,
-    n_future=n_future,
-    n_past=n_past
-)
-# endregion
+# Gym stuff
+import gym
+import gym_anytrading
 
-# region Make and Fit Models
-# For predicting multiple days
-if n_future > 1:
-    for feature in features:
-        # Create model classes
-        model_dict[feature] = ModelTit(db.training_data[f"X_train_{feature}"],
-                                       db.training_data[f"y_train_{feature}"],
-                                       model_ID="2")
-        # Compile models
-        model_dict[feature].model.compile(loss='mean_squared_error', optimizer='adam')
+# Stable baselines - rl stuff
+# import tensorflow.contrib.layers as tf_layers
+from tensorflow.python.compiler.tensorrt
+from stable_baselines.common.vec_env import DummyVecEnv
+from stable_baselines import A2C
 
-        # Fit models
-        model_dict[feature].fit_model(
-            epochs=epochs,
-            validation_split=0.2,
-            batch_size=batch_size,
-            save=f"{feature}_{ticker}"
-        )
-# For predicting 1 day
-else:
-    # Create model classes
-    model_dict[value_to_predict] = ModelTit(db.training_data[f"X_train_{value_to_predict}"],
-                                            db.training_data[f"y_train_{value_to_predict}"],
-                                            model_ID="2")
-    # Compile models
-    model_dict[value_to_predict].model.compile(loss='mean_squared_error', optimizer='adam')
+# Processing libraries
+import numpy as np
+import pandas as pd
+from matplotlib import pyplot as plt
 
-    # Fit models
-    model_dict[value_to_predict].fit_model(
-        epochs=epochs,
-        validation_split=0.2,
-        batch_size=batch_size
-    )
-# endregion
+df = pd.read_csv('data/gmedata.csv')
+df.head()
+
+df['Date'] = pd.to_datetime(df['Date'])
+df.dtypes
+
+df.set_index('Date', inplace=True)
+df.head()
+
+env = gym.make('stocks-v0', df=df, frame_bound=(5,100), window_size=5)
+
+env.signal_features
+
+env.action_space
+
+state = env.reset()
+while True:
+    action = env.action_space.sample()
+    n_state, reward, done, info = env.step(action)
+    if done:
+        print("info", info)
+        break
+
+plt.figure(figsize=(15, 6))
+plt.cla()
+env.render_all()
+plt.show()
+
+env_maker = lambda: gym.make('stocks-v0', df=df, frame_bound=(5,100), window_size=5)
+env = DummyVecEnv([env_maker])
+
+model = A2C('MlpLstmPolicy', env, verbose=1)
+model.learn(total_timesteps=1000000)
+
+env = gym.make('stocks-v0', df=df, frame_bound=(90,110), window_size=5)
+obs = env.reset()
+while True:
+    obs = obs[np.newaxis, ...]
+    action, _states = model.predict(obs)
+    obs, rewards, done, info = env.step(action)
+    if done:
+        print("info", info)
+        break
+
+plt.figure(figsize=(15,6))
+plt.cla()
+env.render_all()
+plt.show()
