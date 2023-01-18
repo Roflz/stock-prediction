@@ -1,7 +1,11 @@
 # Gym stuff
 import gym
+from finta import TA
 from gym import Env, spaces
 from gym.spaces import Discrete, Box, Dict, Tuple, MultiBinary, MultiDiscrete
+from keras import models
+
+from leaves.databitch import DataBitch
 
 # Helpers
 import numpy as np
@@ -16,14 +20,15 @@ from stable_baselines3.common.evaluation import evaluate_policy
 
 class StockEnv(Env):
 
-    def __init__(self, df, window_size, frame_bound):
-
+    def __init__(self, df, window_size, frame_bound, data):
+        self.data = data
         self.df = df
         self.window_size = window_size
         self.frame_bound = frame_bound
         self.prices, self.signal_features = self._process_data()
         self.shape = (window_size, self.signal_features.shape[1])
         self._start_tick = self._current_tick = self.window_size
+        self.predictions = self._make_predictions()
 
         # spaces
         self.action_space = Discrete(3) # Actions we can take: Buy, Sell, Hold
@@ -122,12 +127,30 @@ class StockEnv(Env):
     def _get_observation(self):
         return self.signal_features[(self._current_tick - self.window_size + 1):self._current_tick + 1]
 
+    def _calculate_values(self):
+        # Calculate SMA, RSI, and OBV
+        self.df['SMA'] = TA.SMA(self.df, 12)
+        self.df['RSI'] = TA.RSI(self.df)
+        self.df['OBV'] = TA.OBV(self.df)
+        self.df.fillna(0, inplace=True)
+
     def _process_data(self):
         start = self.frame_bound[0] - self.window_size
         end = self.frame_bound[1]
         prices = self.df.loc[:, 'Open'].to_numpy()[start:end]
+        self._calculate_values()
         signal_features = self.df.loc[:, ['Open', 'Volume', 'SMA', 'RSI', 'OBV']].to_numpy()[start:end]
         return prices, signal_features
+
+    def _make_predictions(self):
+        predictions = []
+        model = models.load_model(f"../models/{self.data.ticker}/model.h5")
+        for i in range(self.data.n_past, len(self.data.training_set)):
+            pred_input = np.array([self.data.training_set_scaled[i - self.data.n_past:i, :]])
+            prediction = model.predict(pred_input, verbose=0)
+            prediction = self.data.pred_scaler.inverse_transform(prediction)[0][0]
+            predictions.append(prediction)
+        return predictions
 
     # def render(self, mode='human'):
     #

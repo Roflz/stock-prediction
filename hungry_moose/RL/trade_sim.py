@@ -7,13 +7,15 @@ from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.vec_env import DummyVecEnv
 
 from .stock_env import StockEnv
+from leaves.databitch import DataBitch
 from gym_anytrading.datasets import FOREX_EURUSD_1H_ASK, STOCKS_GOOGL
 from finta import TA
 
 
 class TradeSim:
 
-    def __init__(self, df, window_size, frame_bound, model=None):
+    def __init__(self, df, window_size, frame_bound, env, model=None):
+        self.env = env
         self.model = model
         self.df = df
         self.window_size = window_size
@@ -21,24 +23,15 @@ class TradeSim:
         self.model_path = os.path.join('training', 'models')
         self.frame_bound = frame_bound
         self.callbacks = []
-        self.env = self.reset_env()
 
         self.df.sort_values('Date', ascending=True, inplace=True)
 
-    def calculate_values(self):
-        # Calculate SMA, RSI, and OBV
-        self.df['SMA'] = TA.SMA(self.df, 12)
-        self.df['RSI'] = TA.RSI(self.df)
-        self.df['OBV'] = TA.OBV(self.df)
-        self.df.fillna(0, inplace=True)
-        print(self.df.head(15))
-
     def set_env(self):
-        self.env = StockEnv(self.df, self.window_size, self.frame_bound)
+        self.env = StockEnv(self.df, self.window_size, self.frame_bound, self.env.data)
         return self.env
 
     def reset_env(self):
-        self.env = StockEnv(self.df, self.window_size, self.frame_bound)
+        self.env = StockEnv(self.df, self.window_size, self.frame_bound, self.env.data)
         return self.env
 
     def make_env(self):

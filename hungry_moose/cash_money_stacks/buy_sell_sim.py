@@ -8,7 +8,8 @@ from RL.trade_sim import TradeSim
 
 # Parameters
 starting_cash = 2000
-tickers = ['AMZN', 'TWTR', 'GOOG', 'UNH', 'META', 'PEP', 'DIS']
+# tickers = ['AMZN', 'TWTR', 'GOOG', 'UNH', 'META', 'PEP', 'DIS']
+tickers = ['AMZN']
 features = ["Open", "Close", "High", "Low", "Volume"]
 n_future = 1
 n_past = 100
@@ -16,17 +17,39 @@ predicted_value = 'Open'
 model_dict = {}
 data = {}
 sims = {}
-years = 8
+years = 1
 frame_bounds = (21, 1750)
 
 # initialize the bank
 dolla_billz = DollaBillz(starting_cash, tickers)
 
-# load the models and stock data
+# load the models and stock data and trade simulator
 for ticker in tickers:
     model_dict[ticker] = models.load_model(f"../models/{ticker}/model.h5")
-    data[ticker] = DataBitch(ticker, years, 'MinMax', features, predicted_value, n_future, n_past)
-    sims[ticker] = TradeSim(data[ticker].df, window_size=10, frame_bound=frame_bounds)
+    data = DataBitch(ticker, years, 'MinMax', features, predicted_value, n_future, n_past)
+    stock_env = StockEnv(data.df, 10, frame_bounds, data)
+    sims[ticker] = TradeSim(data.df, 10, frame_bounds, stock_env)
+
+predictions = {}
+prices = {}
+making_moves = {}
+cash = dolla_billz.cash
+portfolio = dolla_billz.portfolio
+
+for i in range(n_past, len(data['AMZN'].training_set)):
+
+    for ticker in tickers:
+        pred_input = np.array([data[ticker].training_set_scaled[i - n_past:i, :]])
+        prediction = model_dict[ticker].predict(pred_input, verbose=0)
+        prediction = data[ticker].pred_scaler.inverse_transform(prediction)[0][0]
+        current_price = data[ticker].df['Open'][i-1]
+        predictions[ticker] = prediction
+        prices[ticker] = current_price
+
+        making_moves[ticker] = {'price': prices[ticker],
+                                'prediction': predictions[ticker]}
+
+
 
 # this for loop is iterating over all the dates of our stocks
 for i in range(n_past, len(data['AMZN'].training_set)):
