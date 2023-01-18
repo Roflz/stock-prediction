@@ -235,53 +235,72 @@
 # Gym stuff
 import gym
 import gym_anytrading
+from easydict import EasyDict
+# from gym_anytrading.envs import StocksEnv
+from gym_anytrading.datasets import FOREX_EURUSD_1H_ASK, STOCKS_GOOGL
+from test_di.stocks_env import StocksEnv
+from finta import TA
+# from test_di.stocks_env import StocksEnv
+from stable_baselines3.common.evaluation import evaluate_policy
 
 # Stable baselines - rl stuff
-# import tensorflow.contrib.layers as tf_layers
-from tensorflow.python.compiler.tensorrt
-from stable_baselines.common.vec_env import DummyVecEnv
-from stable_baselines import A2C
+from stable_baselines3.common.vec_env import DummyVecEnv
+from stable_baselines3 import A2C
 
 # Processing libraries
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-df = pd.read_csv('data/gmedata.csv')
-df.head()
+# df = pd.read_csv('../data/gmedata.csv')
+df = STOCKS_GOOGL
+print(df.head())
 
-df['Date'] = pd.to_datetime(df['Date'])
-df.dtypes
+# df['Date'] = pd.to_datetime(df['Date'])
+print(df.dtypes)
 
-df.set_index('Date', inplace=True)
-df.head()
+df.sort_values('Date', ascending=True, inplace=True)
 
-env = gym.make('stocks-v0', df=df, frame_bound=(5,100), window_size=5)
+# df.set_index('Date', inplace=True)
+print(df.head())
 
-env.signal_features
+# Fix volume column
+# df['Volume'] = df['Volume'].apply(lambda x: float(x.replace(",", "")))
 
-env.action_space
+# Calculate SMA, RSI, and OBV
+df['SMA'] = TA.SMA(df, 12)
+df['RSI'] = TA.RSI(df)
+df['OBV'] = TA.OBV(df)
+df.fillna(0, inplace=True)
+print(df.head(15))
 
-state = env.reset()
-while True:
-    action = env.action_space.sample()
-    n_state, reward, done, info = env.step(action)
-    if done:
-        print("info", info)
-        break
 
-plt.figure(figsize=(15, 6))
-plt.cla()
-env.render_all()
-plt.show()
+# Create New Environments
+def add_signals(env):
+    start = env.frame_bound[0] - env.window_size
+    end = env.frame_bound[1]
+    prices = env.df.loc[:, 'Open'].to_numpy()[start:end]
+    signal_features = env.df.loc[:, ['Open', 'Volume', 'SMA', 'RSI', 'OBV']].to_numpy()[start:end]
+    return prices, signal_features
 
-env_maker = lambda: gym.make('stocks-v0', df=df, frame_bound=(5,100), window_size=5)
+
+class MyCustomEnv(StocksEnv):
+    _process_data = add_signals
+
+
+# env3 = StocksEnv(EasyDict({"env_id": 'stocks-v0', "eps_length": 300, \
+#                            "window_size": 20, "train_range": None, "test_range": None,
+#                            "stocks_data_filename": 'STOCKS_GOOGL'}))
+
+env2 = MyCustomEnv(df=df, window_size=10, frame_bound=(21, 2000))
+
+env_maker = lambda: env2
 env = DummyVecEnv([env_maker])
 
-model = A2C('MlpLstmPolicy', env, verbose=1)
-model.learn(total_timesteps=1000000)
+model = A2C('MlpPolicy', env, verbose=1)
+model.learn(total_timesteps=50000)
 
-env = gym.make('stocks-v0', df=df, frame_bound=(90,110), window_size=5)
+env = MyCustomEnv(df=df, window_size=10, frame_bound=(2001, 2300))
 obs = env.reset()
 while True:
     obs = obs[np.newaxis, ...]
@@ -291,7 +310,11 @@ while True:
         print("info", info)
         break
 
-plt.figure(figsize=(15,6))
+evaluate_policy(model, env, n_eval_episodes=100, render=False)
+
+plt.figure(figsize=(15, 6))
 plt.cla()
 env.render_all()
 plt.show()
+
+print('Done')

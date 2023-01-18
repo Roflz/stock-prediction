@@ -3,6 +3,8 @@ import numpy as np
 from dolla_billz import DollaBillz
 from keras import models
 from leaves.databitch import DataBitch
+from RL.stock_env import StockEnv
+from RL.trade_sim import TradeSim
 
 # Parameters
 starting_cash = 2000
@@ -13,7 +15,9 @@ n_past = 100
 predicted_value = 'Open'
 model_dict = {}
 data = {}
+sims = {}
 years = 8
+frame_bounds = (21, 1750)
 
 # initialize the bank
 dolla_billz = DollaBillz(starting_cash, tickers)
@@ -22,6 +26,7 @@ dolla_billz = DollaBillz(starting_cash, tickers)
 for ticker in tickers:
     model_dict[ticker] = models.load_model(f"../models/{ticker}/model.h5")
     data[ticker] = DataBitch(ticker, years, 'MinMax', features, predicted_value, n_future, n_past)
+    sims[ticker] = TradeSim(data[ticker].df, window_size=10, frame_bound=frame_bounds)
 
 # this for loop is iterating over all the dates of our stocks
 for i in range(n_past, len(data['AMZN'].training_set)):
@@ -44,10 +49,7 @@ for i in range(n_past, len(data['AMZN'].training_set)):
         prices[ticker] = current_price
 
         making_moves[ticker] = {'price': prices[ticker],
-                                'prediction': predictions[ticker],
-                                'amnt_to_buy': 0,
-                                'prediction_ratio': predictions[ticker] / prices[ticker],
-                                'last_5_prices': data[ticker].df['Open'][i-5:i].values}
+                                'prediction': predictions[ticker]}
 
     for ticker in tickers:
         prediction_ratio = making_moves[ticker]['prediction_ratio']

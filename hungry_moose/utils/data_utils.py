@@ -9,6 +9,7 @@ import os
 import pygsheets
 import requests
 import sklearn.preprocessing as skpp
+import yfinance as yf
 
 from dateutil.relativedelta import relativedelta
 from pandas import DataFrame
@@ -16,7 +17,6 @@ from pandas._libs.tslibs.offsets import BDay, CustomBusinessDay
 from pandas.tseries.holiday import USFederalHolidayCalendar
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from typing import Tuple
-
 
 # For file handling and directory organization
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -38,7 +38,7 @@ def get_data(ticker: str, years: int) -> DataFrame:
     data_path = os.path.join(project_root, 'stock_data', f'{ticker}_{years}_years.csv')
     try:
         # Retrieve from yahoo finance and save it
-        df = pdr.get_data_yahoo(ticker, start=start_date, end=end_date)
+        df = yf.download(ticker, start=start_date, end=end_date)
         df.to_csv(data_path, index=True)
     except requests.exceptions.ConnectionError:
         print('No internet. Checking local files...')
