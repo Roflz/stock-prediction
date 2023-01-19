@@ -1,8 +1,11 @@
 # Gym stuff
+from enum import Enum
+
 import gym
 from finta import TA
 from gym import Env, spaces
-from gym.spaces import Discrete, Box, Dict, Tuple, MultiBinary, MultiDiscrete
+from gym.spaces import Discrete, Box, Dict, Tuple, MultiBinary, MultiDiscrete, flatten, flatten_space
+from gym.utils import seeding
 from keras import models
 
 from leaves.databitch import DataBitch
@@ -18,61 +21,70 @@ from stable_baselines3.common.vec_env import VecFrameStack
 from stable_baselines3.common.evaluation import evaluate_policy
 
 
-class StockEnv(Env):
+class Actions(Enum):
+    Sell = 0
+    Buy = 1
 
-    def __init__(self, df, window_size, frame_bound, data):
+
+class Positions(Enum):
+    Short = 0
+    Long = 1
+
+
+class StockEnv(Env):
+    metadata = {'render.modes': ['human']}
+
+    def __init__(self, data, window_size=10, model=None):
+
+        self.seed()
+        self.model = model
         self.data = data
-        self.df = df
+        self.df = data.df
         self.window_size = window_size
-        self.frame_bound = frame_bound
+        self.predictions = []
         self.prices, self.signal_features = self._process_data()
         self.shape = (window_size, self.signal_features.shape[1])
-        self._start_tick = self._current_tick = self.window_size
-        self.predictions = self._make_predictions()
+        self._start_tick = self._current_tick = 0
 
         # spaces
-        self.action_space = Discrete(3) # Actions we can take: Buy, Sell, Hold
+        self.action_space = Discrete(3)  # Actions we can take: Buy, Sell, Hold
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=self.shape, dtype=np.float64)
 
         # Set starting capital
         self.cash = 5000
         self.shares = 0
         self.portfolio_value = 0
-        self._calculate_total_value(self._start_tick)
-
-        # length of time i.e. how many days of trading
-        self.total_days = len(self.prices) - 1 - self.window_size
+        self._calculate_total_value()
 
         # episode
         self._last_trade_tick = self._current_tick - 1
-        self._end_tick = len(self.prices) - 1
+        self._end_tick = len(self.prices) - self.window_size
         self._portfolio_value_last_tick = 0
         self._done = None
         self._total_reward = 0
         self._total_profit = 0  # unit
 
-    def _calculate_total_value(self, tick):
-        self._calculate_portfolio_value(tick)
-        self.total_value = self.cash + self.portfolio_value
+    def seed(self, seed=None):
+        self.np_random, seed = seeding.np_random(seed)
+        return [seed]
+
+    def _calculate_total_value(self):
+        self.total_value = self.cash + self._calculate_portfolio_value()
         return self.total_value
 
-    def _calculate_portfolio_value(self, tick):
-        current_price = self.prices[tick]
+    def _calculate_portfolio_value(self):
+        current_price = self.prices[self._current_tick]
         self.portfolio_value = current_price * self.shares
         return self.portfolio_value
 
     def step(self, action):
         self._done = False
-        self._current_tick += 1
-
-        if self._current_tick == self._end_tick:
-            self._done = True
 
         reward = 0
-        current_price = self.prices[self._current_tick]
-        last_trade_price = self.prices[self._last_trade_tick]
+        current_price = self.prices[self._current_tick + self.window_size]
+        last_trade_price = self.prices[self._last_trade_tick + self.window_size]
         price_diff = current_price - last_trade_price
-        last_value = self._calculate_total_value(self._current_tick)
+        last_value = self._calculate_total_value()
 
         # Apply action
         # 0 = Buy
@@ -95,12 +107,10 @@ class StockEnv(Env):
             # Hold
             pass
 
-        self._calculate_total_value(self._current_tick)
+        self._current_tick += 1
+        self._calculate_total_value()
         reward += self.total_value - last_value
-
-        self._total_reward += reward
-        self._calculate_portfolio_value(self._current_tick)
-        self._calculate_total_value(self._current_tick)
+        # self._total_reward += reward
 
         obs = self._get_observation()
 
@@ -112,6 +122,9 @@ class StockEnv(Env):
             shares=self.shares
         )
 
+        if self._current_tick == self._end_tick:
+            self._done = True
+
         # Return step information
         return obs, reward, self._done, info
 
@@ -120,37 +133,70 @@ class StockEnv(Env):
         pass
 
     def reset(self):
-        self.__init__(self.df, self.window_size, self.frame_bound)
-        self._current_tick = self._start_tick
+        self.model = self.model
+        self.data = self.data
+        self.df = self.data.df
+        self.window_size = self.window_size
+        self.predictions = []
+        self.prices, self.signal_features = self._process_data()
+        self.shape = (self.window_size, self.signal_features.shape[1])
+        self._start_tick = self._current_tick = 0
+
+        # spaces
+        self.action_space = Discrete(3)  # Actions we can take: Buy, Sell, Hold
+        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=self.shape, dtype=np.float64)
+
+        # Set starting capital
+        self.cash = 5000
+        self.shares = 0
+        self.portfolio_value = 0
+        self._calculate_total_value()
+
+        # episode
+        self._last_trade_tick = self._current_tick - 1
+        self._end_tick = len(self.prices) - self.window_size
+        self._portfolio_value_last_tick = 0
+        self._done = None
+        self._total_reward = 0
+        self._total_profit = 0  # unit
         return self._get_observation()
 
     def _get_observation(self):
-        return self.signal_features[(self._current_tick - self.window_size + 1):self._current_tick + 1]
+        return self.signal_features[self._current_tick:self._current_tick + self.window_size]
 
     def _calculate_values(self):
         # Calculate SMA, RSI, and OBV
-        self.df['SMA'] = TA.SMA(self.df, 12)
-        self.df['RSI'] = TA.RSI(self.df)
-        self.df['OBV'] = TA.OBV(self.df)
+        self.df.loc[:, 'SMA'] = TA.SMA(self.df, 12)
+        self.df.loc[:, 'RSI'] = TA.RSI(self.df)
+        self.df.loc[:, 'OBV'] = TA.OBV(self.df)
         self.df.fillna(0, inplace=True)
 
     def _process_data(self):
-        start = self.frame_bound[0] - self.window_size
-        end = self.frame_bound[1]
-        prices = self.df.loc[:, 'Open'].to_numpy()[start:end]
+        start = self.data.n_past - 1
+        prices = self.df.loc[:, 'Open'].to_numpy()[start:]
         self._calculate_values()
-        signal_features = self.df.loc[:, ['Open', 'Volume', 'SMA', 'RSI', 'OBV']].to_numpy()[start:end]
+        if self.predictions:
+            signal_features = self.df.loc[:, ['Open', 'Volume', 'SMA', 'RSI', 'OBV', 'prediction']].to_numpy()[start:]
+        else:
+            signal_features = self.df.loc[:, ['Open', 'Volume', 'SMA', 'RSI', 'OBV']].to_numpy()[start:]
         return prices, signal_features
 
-    def _make_predictions(self):
-        predictions = []
-        model = models.load_model(f"../models/{self.data.ticker}/model.h5")
-        for i in range(self.data.n_past, len(self.data.training_set)):
+    def predict(self):
+        predictions = [0] * (self.data.n_past - 1)
+        for i in range(self.data.n_past, len(self.df) + 1):
             pred_input = np.array([self.data.training_set_scaled[i - self.data.n_past:i, :]])
-            prediction = model.predict(pred_input, verbose=0)
+            prediction = self.model.predict(pred_input, verbose=0)
             prediction = self.data.pred_scaler.inverse_transform(prediction)[0][0]
             predictions.append(prediction)
-        return predictions
+        self.predictions = self.df['prediction'] = predictions
+        self._process_data()
+
+    def split_data(self, validation=None, train=None):
+        if train:
+            self.data.df = self.df.loc[:round(len(self.df) * train), :]
+        if validation:
+            self.data.df = self.df.loc[round(len(self.df) - len(self.df) * validation):, :]
+        self.reset()
 
     # def render(self, mode='human'):
     #

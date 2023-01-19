@@ -6,6 +6,7 @@ from pandas import DataFrame
 from utils import data_utils as utils
 from typing import Dict
 
+pd.options.mode.chained_assignment = None  # default='warn'
 
 class DataBitch:
 
@@ -30,19 +31,6 @@ class DataBitch:
         self.value_to_predict = value_to_predict
         self.n_future = n_future
         self.n_past = n_past
-
-    ### This is an example
-    ## protected class attribute
-    #     self.__my_variable = None
-    #
-    # @my_variable.setter
-    # def my_variable(self, value):
-    #     self.__my_variable = value
-    #
-    ## (getter)
-    # @property
-    # def my_variable(self):
-    #     return self.__my_variable
 
         # Initialize data
         self.df: DataFrame = utils.get_data(ticker, years)                           # Full dataset from CSV
