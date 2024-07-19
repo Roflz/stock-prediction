@@ -110,7 +110,7 @@ class StockEnv(Env):
         self._current_tick += 1
         self._calculate_total_value()
         reward += self.total_value - last_value
-        # self._total_reward += reward
+        self._total_reward += reward
 
         obs = self._get_observation()
 
